@@ -194,6 +194,22 @@ function newSessionId(): string {
 }
 const usage = { session: newSessionId(), opened: false, acted: false };
 
+// ---- 訪問者ID：公開デモで、ブラウザごとに別々のデモデータを使うための目印（ランダムな32文字）
+function loadVisitorId(): string {
+  const make = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+  try {
+    const saved = window.localStorage.getItem("workrelay.visitor");
+    if (saved && /^[a-z0-9]{16,32}$/.test(saved)) return saved;
+    const id = make();
+    window.localStorage.setItem("workrelay.visitor", id);
+    return id;
+  } catch {
+    return make(); // 保存できない環境では、開いている間だけのID
+  }
+}
+const visitorId = loadVisitorId();
+const baseHeaders = (): Record<string, string> => ({ "X-WorkRelay-Visitor": visitorId });
+
 // ---- データ領域：デモツアー中は「tour」（ツアー専用のDB）を使い、利用者のデモのデータを変えない
 let space: "demo" | "tour" = "demo";
 export const dataSpace = {
@@ -207,14 +223,14 @@ export const tracking = {
   homeOpened() {
     if (usage.opened || space === "tour") return; // ツアー中の操作は計測に含めない
     usage.opened = true;
-    fetch("/api/usage", { method: "POST", headers: { "Content-Type": "application/json" },
+    fetch("/api/usage", { method: "POST", headers: { ...baseHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify({ session_id: usage.session, kind: "home_open" }) }).catch(() => {});
   },
   /** 最初の行動を決めた（返信案を開く・判断・並べ替えなど） */
   firstAction(requestId?: number) {
     if (!usage.opened || usage.acted || space === "tour") return;
     usage.acted = true;
-    fetch("/api/usage", { method: "POST", headers: { "Content-Type": "application/json" },
+    fetch("/api/usage", { method: "POST", headers: { ...baseHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify({ session_id: usage.session, kind: "first_action", request_id: requestId ?? null }) }).catch(() => {});
   },
   /** デモをやり直したら、計測も最初から */
@@ -227,7 +243,7 @@ export const tracking = {
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
   if (method !== "GET" && !NOT_ACTIONS.some((p) => path.startsWith(p))) tracking.firstAction();
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = baseHeaders();
   if (body) headers["Content-Type"] = "application/json";
   if (space === "tour") headers["X-WorkRelay-Space"] = "tour";
   const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
@@ -266,7 +282,7 @@ export const api = {
   setFilePermission: (requestId: number, fileName: string, allowed: boolean) =>
     call("PUT", `/api/requests/${requestId}/files`, { file_name: fileName, allowed }),
   createDocument: (requestId: number) => call<DocumentDraft>("POST", `/api/requests/${requestId}/document`),
-  documentUrl: (id: number) => `/api/documents/${id}/download${space === "tour" ? "?space=tour" : ""}`,
+  documentUrl: (id: number) => `/api/documents/${id}/download?visitor=${visitorId}${space === "tour" ? "&space=tour" : ""}`,
   createSlot: (requestId: number, start: string, end: string) =>
     call<CalEvent>("POST", `/api/requests/${requestId}/work-slots`, { start, end }),
   deleteSlot: (eventId: number) => call("DELETE", `/api/work-slots/${eventId}`),

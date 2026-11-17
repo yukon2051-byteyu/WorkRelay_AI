@@ -33,11 +33,25 @@ M365_IMPLEMENTED = False
 M365_ENABLED = os.environ.get("WORKRELAY_M365_ENABLED", "false").lower() == "true"
 
 
-def db_path(mode: str | None = None) -> Path:
-    """DB ファイルの場所。tour はデモツアー専用（利用者が自由に操作するデモとは別のファイル）。"""
+# 公開デモ（Hugging Face Spaces など）として動かすとき true。
+# 訪問者（ブラウザ）ごとに別々のデモデータを使い、ほかの訪問者の操作が見えないようにする
+PUBLIC_DEMO = os.environ.get("WORKRELAY_PUBLIC", "false").lower() == "true"
+VISITOR_MAX_AGE_HOURS = 24   # これより長く使われていない訪問者のデータは消す
+VISITOR_MAX_FILES = 400      # 訪問者データのファイル数の上限（古い順に消す）
+
+
+def visitor_dir() -> Path:
+    return DATA_DIR / "visitors"
+
+
+def db_path(mode: str | None = None, visitor: str | None = None) -> Path:
+    """DB ファイルの場所。tour はデモツアー専用（利用者が自由に操作するデモとは別のファイル）。
+    visitor を指定すると、その訪問者専用のファイルになる（visitor は呼び出し側で形式を確認済みであること）。"""
     mode = mode or DATA_MODE
     if mode not in ("demo", "m365", "tour"):
         raise ValueError(f"不明なモードです: {mode}")
+    if visitor:
+        return visitor_dir() / f"{visitor}_{mode}.db"
     return DATA_DIR / f"workrelay_{mode}.db"
 
 

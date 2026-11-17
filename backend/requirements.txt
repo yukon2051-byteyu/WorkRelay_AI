@@ -1,6 +1,7 @@
+# 実行に必要な部品（版を固定して、どの環境でも同じ動きにする）
 fastapi==0.163.1
-uvicorn
-pytest
-httpx
+starlette==1.10.0
+pydantic==2.14.3
+uvicorn==0.54.0
 openpyxl==3.1.5
 python-pptx==1.0.2

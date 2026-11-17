@@ -1,10 +1,13 @@
 """WorkRelay AI バックエンドの入口（API の一覧）。"""
 from collections.abc import Iterator
 import json
+import os
 import sqlite3
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 from urllib.parse import quote
 from pydantic import BaseModel
 
@@ -17,6 +20,7 @@ from app.metrics import service as metrics
 from app.pipeline import run_pipeline
 from app.planning import today, work_slots
 from app.sources.demo import DemoSource
+from app import visitors
 
 app = FastAPI(title="WorkRelay AI")
 
@@ -35,18 +39,33 @@ def _bad_request(_: Request, exc: ValueError):
 def get_conn(
     x_workrelay_space: str | None = Header(default=None),
     space: str | None = Query(default=None),
+    x_workrelay_visitor: str | None = Header(default=None),
+    visitor: str | None = Query(default=None),
 ) -> Iterator[sqlite3.Connection]:
     """リクエストごとに DB へ接続し、終わったら閉じる。テストでは差し替える。
 
     デモツアーの通信には「tour」の目印（ヘッダー、またはダウンロード用の ?space=tour）が付く。
     その場合はツアー専用の DB を使い、利用者が自由に操作しているデモのデータを変えない。
+    公開デモでは、訪問者IDごとに別の DB を使い、ほかの訪問者の操作が混ざらないようにする。
     """
     chosen = x_workrelay_space or space
     if chosen not in (None, "", "tour"):
         raise HTTPException(status_code=400, detail="不明なデータ領域です")
     if chosen == "tour" and config.DATA_MODE != "demo":
         raise HTTPException(status_code=400, detail="デモツアーはデモモードでのみ使えます")
-    conn = connect(config.db_path("tour" if chosen == "tour" else None))
+    mode = "tour" if chosen == "tour" else config.DATA_MODE
+    vid = x_workrelay_visitor or visitor
+    if vid is not None and not visitors.is_valid(vid):
+        raise HTTPException(status_code=400, detail="訪問者IDの形式が正しくありません")
+    if config.PUBLIC_DEMO and not vid:
+        raise HTTPException(status_code=400, detail="公開デモでは訪問者IDが必要です")
+    # 訪問者ごとに分けるのは公開デモのときだけ（開発中は1つのデモデータを使う）
+    if config.PUBLIC_DEMO and config.DATA_MODE == "demo":
+        path = config.db_path(mode, visitor=vid)
+        visitors.ensure_prepared(path, mode)
+    else:
+        path = config.db_path(mode)
+    conn = connect(path)
     try:
         yield conn
     finally:
@@ -316,3 +335,19 @@ def snooze(request_id: int, body: Snooze, conn=Depends(get_conn)) -> dict:
     intake.get_request(conn, request_id)  # 存在しなければ 404
     today.set_snoozed(conn, request_id, body.snoozed)
     return {"status": "saved"}
+
+
+# ---------------------------------------------------------------- 画面の配信（公開環境用）
+# 公開環境では、ビルドした画面（frontend/dist）も同じサーバーから配信し、1つのサービスとして動かす。
+# 開発中は Vite の開発サーバーが画面を配信するので、WORKRELAY_STATIC_DIR を設定しない。
+_static = os.environ.get("WORKRELAY_STATIC_DIR")
+if _static and Path(_static, "index.html").is_file():
+    _static_dir = Path(_static).resolve()
+    app.mount("/assets", StaticFiles(directory=_static_dir / "assets"), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def spa(full_path: str) -> FileResponse:
+        """/api 以外は画面（index.html）を返す。存在しない /api/... は 404 のまま。"""
+        if full_path.startswith("api/") or full_path == "api":
+            raise HTTPException(status_code=404, detail="Not Found")
+        return FileResponse(_static_dir / "index.html", headers={"Cache-Control": "no-cache"})
