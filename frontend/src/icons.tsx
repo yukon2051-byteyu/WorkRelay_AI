@@ -22,3 +22,8 @@ export const IconClock = ({ size }: P) => (<svg {...base(size)}><circle cx="12" 
 
 export const ChannelIcon = ({ channel }: { channel: string }) =>
   channel === "teams" ? <IconChat size={14} /> : <IconMail size={14} />;
+
+/** 連絡元のラベル（Outlook＝ブルー、Teams＝ライラック。アイコンと名前の両方で示す） */
+export const ChannelLabel = ({ channel }: { channel: string }) => (
+  <span className={`ch ch-${channel}`}><ChannelIcon channel={channel} />{channel === "teams" ? "Teams" : "Outlook"}</span>
+);

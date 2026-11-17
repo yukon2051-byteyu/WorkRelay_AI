@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from app import config
 from app.db import ALL_TABLES, connect
+from app.drafts import service as drafts
 from app.intake import service as intake
 from app.pipeline import run_pipeline
 from app.planning import today
@@ -123,27 +124,39 @@ def list_requests(conn=Depends(get_conn)) -> list[dict]:
 
 @app.get("/api/requests/{request_id}")
 def get_request(request_id: int, conn=Depends(get_conn)) -> dict:
-    return intake.get_request(conn, request_id)
+    detail = intake.get_request(conn, request_id)
+    detail["drafts"] = drafts.list_drafts(conn, request_id)
+    return detail
 
+
+# 利用者の判断で状況が変わったら、新しく必要になった下書きだけを用意する（既存の下書きは変えない）
 
 @app.patch("/api/requests/{request_id}")
 def update_request(request_id: int, body: RequestUpdate, conn=Depends(get_conn)) -> dict:
-    return intake.update_request(conn, request_id, body.model_dump(exclude_unset=True))
+    result = intake.update_request(conn, request_id, body.model_dump(exclude_unset=True))
+    drafts.prepare_drafts(conn, config.DATA_MODE)
+    return result
 
 
 @app.post("/api/requests/{request_id}/due-decision")
 def decide_due(request_id: int, body: DueDecision, conn=Depends(get_conn)) -> dict:
-    return intake.decide_due_change(conn, request_id, body.decision, body.committed_due)
+    result = intake.decide_due_change(conn, request_id, body.decision, body.committed_due)
+    drafts.prepare_drafts(conn, config.DATA_MODE)
+    return result
 
 
 @app.post("/api/candidates/{candidate_id}/accept")
 def accept_candidate(candidate_id: int, conn=Depends(get_conn)) -> dict:
-    return intake.decide_candidate(conn, candidate_id, accept=True)
+    result = intake.decide_candidate(conn, candidate_id, accept=True)
+    drafts.prepare_drafts(conn, config.DATA_MODE)
+    return result
 
 
 @app.post("/api/candidates/{candidate_id}/reject")
 def reject_candidate(candidate_id: int, conn=Depends(get_conn)) -> dict:
-    return intake.decide_candidate(conn, candidate_id, accept=False)
+    result = intake.decide_candidate(conn, candidate_id, accept=False)
+    drafts.prepare_drafts(conn, config.DATA_MODE)
+    return result
 
 
 @app.get("/api/request-types")
@@ -156,6 +169,34 @@ def list_request_types(conn=Depends(get_conn)) -> list[dict]:
 @app.put("/api/request-types/{code}")
 def update_request_type(code: str, body: RequiredFields, conn=Depends(get_conn)) -> dict:
     return intake.set_required_fields(conn, code, body.required_fields)
+
+
+# ---------------------------------------------------------------- 下書き
+
+class DraftCreate(BaseModel):
+    kind: str  # due_adjust / confirm / answer / completion
+
+
+class DraftEdit(BaseModel):
+    body: str
+
+
+@app.post("/api/requests/{request_id}/drafts")
+def create_draft(request_id: int, body: DraftCreate, conn=Depends(get_conn)) -> dict:
+    """利用者の操作で下書きを作る／作り直す（編集済みの本文は上書きしない）。"""
+    return drafts.generate(conn, request_id, body.kind)
+
+
+@app.patch("/api/drafts/{draft_id}")
+def edit_draft(draft_id: int, body: DraftEdit, conn=Depends(get_conn)) -> dict:
+    return drafts.edit(conn, draft_id, body.body)
+
+
+@app.post("/api/drafts/{draft_id}/{action}")
+def draft_action(draft_id: int, action: str, conn=Depends(get_conn)) -> dict:
+    """copy / save（Outlookに下書き保存） / sent（送信したことを記録） / discard / apply-suggestion。
+    いずれも画面で内容を確認した利用者の操作から呼ばれる。自動では呼ばない。"""
+    return drafts.act(conn, draft_id, action)
 
 
 # ---------------------------------------------------------------- 今日やること

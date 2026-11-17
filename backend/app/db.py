@@ -106,6 +106,35 @@ CREATE TABLE IF NOT EXISTS relation_candidates (
     UNIQUE (message_id, request_id)
 );
 
+-- 返信・連絡の下書き
+CREATE TABLE IF NOT EXISTS drafts (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    request_id         INTEGER NOT NULL REFERENCES requests(id),
+    kind               TEXT NOT NULL,     -- due_adjust / confirm / answer / completion
+    channel            TEXT NOT NULL,     -- 返信する場所：outlook / teams
+    to_name            TEXT,
+    to_email           TEXT,
+    subject            TEXT,
+    body               TEXT NOT NULL,     -- 現在の本文（利用者の編集を含む）
+    generated_body     TEXT NOT NULL,     -- 最後にテンプレートで作った本文
+    basis              TEXT NOT NULL,     -- 作成時の条件（JSON）。変わったら「更新内容の確認が必要」
+    is_edited          INTEGER NOT NULL DEFAULT 0,
+    has_new_suggestion INTEGER NOT NULL DEFAULT 0,  -- 編集済みの下書きに、新しい案が別にある
+    status             TEXT NOT NULL,     -- draft（未保存） / saved（下書き保存済み） / sent（送信済み） / discarded（使わない）
+    created_at         TEXT NOT NULL,
+    updated_at         TEXT NOT NULL,
+    UNIQUE (request_id, kind)
+);
+
+-- 下書きの操作記録（効果測定に使う）
+CREATE TABLE IF NOT EXISTS draft_events (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    draft_id INTEGER NOT NULL REFERENCES drafts(id),
+    at       TEXT NOT NULL,
+    action   TEXT NOT NULL,   -- generated / edited / copied / saved / sent / discarded / regenerated / suggestion_applied
+    note     TEXT
+);
+
 -- アプリの状態フラグ（デモの持ち越しを適用済みか など）
 CREATE TABLE IF NOT EXISTS app_meta (
     key   TEXT PRIMARY KEY,
@@ -141,7 +170,7 @@ CREATE TABLE IF NOT EXISTS ingest_runs (
 
 # 削除するときの順番（参照される側を後に消す）
 ALL_TABLES = [
-    "request_history", "relation_candidates", "message_classes", "request_messages",
+    "draft_events", "drafts", "request_history", "relation_candidates", "message_classes", "request_messages",
     "request_fields", "requests", "request_types", "events", "messages", "ingest_runs", "app_meta",
 ]
 

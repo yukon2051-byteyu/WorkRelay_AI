@@ -116,6 +116,27 @@ export type RequestDetail = {
   candidates: Candidate[];
   history: History[];
   work_slots: CalEvent[];
+  drafts: Draft[];
+};
+export type Draft = {
+  id: number;
+  request_id: number;
+  kind: "due_adjust" | "confirm" | "answer" | "completion";
+  kind_label: string;
+  channel: "outlook" | "teams";
+  to_name: string;
+  to_email: string;
+  subject: string | null;
+  body: string;
+  generated_body: string;
+  is_edited: number;
+  has_new_suggestion: number;
+  status: "draft" | "saved" | "sent" | "discarded";
+  needs_review: boolean;
+  changes: { label: string; old: string; new: string }[];
+  has_placeholder: boolean;
+  generator: string;
+  updated_at: string;
 };
 
 export type Health = { status: string; mode: string; m365: { implemented: boolean; connectable: boolean } };
@@ -154,6 +175,10 @@ export const api = {
   setOrder: (ids: number[]) => call("PUT", "/api/home/order", { request_ids: ids }),
   snooze: (id: number, snoozed: boolean) => call("PUT", `/api/requests/${id}/snooze`, { snoozed }),
   events: () => call<CalEvent[]>("GET", "/api/events"),
+  createDraft: (requestId: number, kind: Draft["kind"]) => call<Draft>("POST", `/api/requests/${requestId}/drafts`, { kind }),
+  editDraft: (id: number, body: string) => call<Draft>("PATCH", `/api/drafts/${id}`, { body }),
+  draftAction: (id: number, action: "copy" | "save" | "sent" | "discard" | "apply-suggestion") =>
+    call<Draft>("POST", `/api/drafts/${id}/${action}`),
 };
 
 // ---- 表示用の小道具

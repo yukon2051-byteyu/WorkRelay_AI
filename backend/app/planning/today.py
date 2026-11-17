@@ -12,6 +12,7 @@ import json
 import re
 from datetime import datetime
 
+from app.drafts import service as draft_service
 from app.intake import rules
 from app.planning.slots import free_minutes_until, free_slots
 
@@ -178,7 +179,19 @@ def build_card(conn, req: dict, now: datetime, slots, events, last_checked: date
         # ⑥ 着手可能な作業
         if newly_ready and newly_ready["at"] > last_checked.isoformat():
             why.append(f"{when_label(newly_ready['at'], now)}の返信で必要な情報がそろった")
-        if work_slots:
+        late_slots = [s for s in work_slots if committed and s["end_at"] > committed]
+        if late_slots and effort:
+            # 確定期限より後ろに作業枠がある（期限を前倒しで確定した後など）→ このままでは間に合わない
+            s = late_slots[0]
+            free = free_minutes_until(slots, datetime.fromisoformat(committed))
+            next_action = f"{req['title']}を{fmt_dt(committed, now)}までに仕上げる段取りを決める"
+            why.append(f"登録済みの作業枠（{s['start_at'][11:16]}–{s['end_at'][11:16]}）は確定期限より後です。")
+            why.append(f"{datetime.fromisoformat(committed):%H:%M}までの空きは{free}分、必要な作業は{effort}分です。")
+            capacity = {"until": f"{datetime.fromisoformat(committed):%H:%M}", "free_minutes": free, "need_minutes": effort}
+            prep.append({"label": "作業枠が期限の後", "kind": "warn"})
+            primary = {"label": "作業枠を見る", "target": "slots"}
+            section, score = "now", 90
+        elif work_slots:
             s = work_slots[0]
             next_action = f"{req['title']}を仕上げる"
             why.append(f"作業枠 {s['start_at'][11:16]}–{s['end_at'][11:16]} 登録済み")
@@ -189,7 +202,8 @@ def build_card(conn, req: dict, now: datetime, slots, events, last_checked: date
             if effort:
                 fit = [f"{a:%H:%M}–{b:%H:%M}" for a, b in slots if (b - a).total_seconds() / 60 >= effort]
                 why.append(f"所要{effort}分。今日入る空き枠：{'、'.join(fit[:2]) if fit else 'なし'}")
-        section, score = "today", 40
+        if section != "now":
+            section, score = "today", 40
 
     # 期限の近さ・期限なし・作業時間
     # バッジは「押す前に分かると役立つ状態」だけにし、タイトルや理由と同じ内容は重ねない
@@ -201,6 +215,16 @@ def build_card(conn, req: dict, now: datetime, slots, events, last_checked: date
         prep.append({"label": "作業時間は未見積もり", "kind": "info"})
     if proposals and primary["target"] != "candidate":
         prep.append({"label": "同一依頼の候補あり", "kind": "info"})
+    # 押す前に分かると役立つ「準備済み」の状態（実際に下書きがあるときだけ）
+    for d in draft_service.list_drafts(conn, rid):
+        if d["status"] in ("sent", "discarded"):
+            continue
+        name = "確認文" if d["kind"] == "confirm" else "返信案"
+        if d["needs_review"]:
+            prep.insert(0, {"label": f"{name}の更新確認が必要", "kind": "warn"})
+        else:
+            label = f"{name}あり" + ("（保存済み）" if d["status"] == "saved" else "")
+            prep.insert(0, {"label": label, "kind": "ok"})
 
     evidence = [{"message_id": m["id"], "channel": m["channel"], "sender_name": m["sender_name"],
                  "received_at": m["received_at"], "role": m["role"], "snippet": _snippet(m["body"])}

@@ -1,12 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { api, Card, CalEvent, CHANNEL, fmtDue, fmtTime, History, RequestDetail as Detail, statusClass } from "../api";
-import { ChannelIcon, IconCheck, IconClose, IconLink, IconToday, IconWarn } from "../icons";
-
-/** 連絡元のラベル（Outlook＝ブルー、Teams＝ライラック。アイコンと名前の両方で示す） */
-export function ChannelLabel({ channel }: { channel: string }) {
-  return <span className={`ch ch-${channel}`}><ChannelIcon channel={channel} />{CHANNEL[channel]}</span>;
-}
+import { ChannelLabel, IconCheck, IconClose, IconLink, IconToday, IconWarn } from "../icons";
+import DraftPanel from "./DraftPanel";
 
 /** 原文はそのまま、指定した箇所だけ <mark> で軽く強調する */
 function highlight(text: string, phrases: string[]): ReactNode[] {
@@ -219,10 +215,10 @@ export default function RequestDetail({ requestId, card, nowIso, events, freeSlo
           </div>
         </section>
 
-        {/* ---- 下書き（ステップ5・6で実装） ---- */}
+        {/* ---- 下書き ---- */}
         <section className="block" data-sec="draft">
-          <h3>AIが用意した下書き</h3>
-          <p className="muted" style={{ margin: 0 }}>返信案・確認文・資料はまだ作成していません（次のステップで追加します）。</p>
+          <h3>用意した下書き{d.drafts.some((x) => x.needs_review) && <span className="badge warn"><IconWarn size={12} />更新確認</span>}</h3>
+          <DraftPanel detail={d} onChanged={onChanged} />
         </section>
 
         {/* ---- 進行 ---- */}

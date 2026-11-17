@@ -22,6 +22,10 @@ DEMO_NOW = datetime(2026, 11, 18, 9, 0, tzinfo=JST)
 DEMO_LAST_CHECKED = datetime(2026, 11, 17, 18, 30, tzinfo=JST)
 
 
+# デモの利用者（架空）。下書きの署名に使う
+USER_NAME = "青木"
+USER_EMAIL = "aoki.yu@example.com"
+
 # Microsoft 365 実連携の状態。画面の案内文はこの値で切り替わる。
 #   implemented：連携機能を実装済みか（ステップ9で True にする）
 #   enabled    ：この環境で接続を許可するか（公開デモでは False のまま）

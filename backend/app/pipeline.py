@@ -9,6 +9,7 @@ import json
 import sqlite3
 
 from app import config
+from app.drafts.service import prepare_drafts
 from app.ingest.service import ingest
 from app.intake.service import apply_carryover, process_messages
 
@@ -26,6 +27,8 @@ def run_pipeline(conn: sqlite3.Connection, source) -> dict:
 
     processed = _merge(processed, process_messages(conn, source.name))
     result["processed"] = processed
+    # 朝の準備：必要な返信・確認文の下書きを用意する（作るだけ。保存・送信はしない）
+    result["drafts_created"] = prepare_drafts(conn, source.name)
     return result
 
 

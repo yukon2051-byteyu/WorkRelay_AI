@@ -136,6 +136,10 @@ def test_after_due_decision_card_changes(client):
     client.post(f"/api/requests/{rid}/due-decision", json={"decision": "accept"})
     card = next(c for c in _flat(_home(client)) if c["request_id"] == rid)
     assert card["due"]["committed"] == "2026-11-18T11:00:00+09:00"
+    # 13:30 の作業枠は新しい確定期限より後 → 間に合わないことを警告し、今すぐ対応に出す
+    assert card["section"] == "now"
+    assert "登録済みの作業枠（13:30–14:30）は確定期限より後です。" in card["why_now"]
+    assert {"label": "作業枠が期限の後", "kind": "warn"} in card["prep"]
 
 
 # ---------------------------------------------------------------- 空き時間
