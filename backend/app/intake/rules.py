@@ -223,6 +223,28 @@ def relation_reasons(msg: dict, request: dict) -> list[str]:
     return reasons
 
 
+def relation_highlights(msg_body: str, request: dict, found_values: dict[str, str]) -> list[str]:
+    """候補と判断した理由に対応する、元メッセージ内の箇所（原文の一部）を返す。画面で軽く強調する。"""
+    out: list[str] = []
+    words = re.findall(rf"[{KANJI_KANA}]{{3,}}", request["title"])
+    hit = next((w[i:j] for w in words for i in range(len(w)) for j in range(len(w), i + 2, -1)
+                if w[i:j] in msg_body), None)
+    if hit:
+        # 「昨日メールでお願いした売上資料」のように、メールへの言及と依頼名の語をひと続きで拾う
+        m = re.search(rf"(?:昨日|さっき|先ほど|先日)?メール(?:で|した|の)[^、。！!\n]{{0,15}}?{re.escape(hit)}", msg_body)
+        out.append(m[0] if m else hit)
+    elif (m := re.search(REFERENCE_TO_MAIL, msg_body)):
+        out.append(m[0])
+    # 期限（「11時まで」）や、回答らしき値（「サービス別」）
+    m = re.search(r"\d{1,2}(?::\d{2}|時)\s*まで", msg_body)
+    if m:
+        out.append(m[0])
+    for v in found_values.values():
+        if v in msg_body and v not in out:
+            out.append(v)
+    return out
+
+
 def is_relation_candidate(reasons: list[str]) -> bool:
     """同じ依頼者であることに加え、内容の根拠が1つ以上あれば候補にする。"""
     return any(r.startswith("同じ依頼者") for r in reasons) and len(reasons) >= 2

@@ -22,6 +22,13 @@ DEMO_NOW = datetime(2026, 11, 18, 9, 0, tzinfo=JST)
 DEMO_LAST_CHECKED = datetime(2026, 11, 17, 18, 30, tzinfo=JST)
 
 
+# Microsoft 365 実連携の状態。画面の案内文はこの値で切り替わる。
+#   implemented：連携機能を実装済みか（ステップ9で True にする）
+#   enabled    ：この環境で接続を許可するか（公開デモでは False のまま）
+M365_IMPLEMENTED = False
+M365_ENABLED = os.environ.get("WORKRELAY_M365_ENABLED", "false").lower() == "true"
+
+
 def db_path(mode: str | None = None) -> Path:
     mode = mode or DATA_MODE
     if mode not in ("demo", "m365"):

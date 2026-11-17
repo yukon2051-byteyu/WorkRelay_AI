@@ -11,6 +11,7 @@ from app import config
 from app.db import ALL_TABLES, connect
 from app.intake import service as intake
 from app.pipeline import run_pipeline
+from app.planning import today
 from app.sources.demo import DemoSource
 
 app = FastAPI(title="WorkRelay AI")
@@ -49,7 +50,13 @@ def get_source():
 @app.get("/api/health")
 def health() -> dict:
     """死活確認用。画面からここを呼び、サーバーとつながっているかを確かめる。"""
-    return {"status": "ok", "mode": config.DATA_MODE}
+    return {
+        "status": "ok",
+        "mode": config.DATA_MODE,
+        # 実連携を実装済みでも、この環境で有効でなければ接続ボタンは出さない
+        "m365": {"implemented": config.M365_IMPLEMENTED,
+                 "connectable": config.M365_IMPLEMENTED and config.M365_ENABLED},
+    }
 
 
 @app.post("/api/ingest")
@@ -65,6 +72,8 @@ def reset_demo(conn=Depends(get_conn)) -> dict:
         raise HTTPException(status_code=403, detail="デモモード以外では使えません")
     for table in ALL_TABLES:
         conn.execute(f"DELETE FROM {table}")
+    # 連番（AUTOINCREMENT）も戻す。毎回同じ ID で再現できるようにするため
+    conn.execute("DELETE FROM sqlite_sequence")
     conn.commit()
     return {"status": "reset"}
 
@@ -147,3 +156,32 @@ def list_request_types(conn=Depends(get_conn)) -> list[dict]:
 @app.put("/api/request-types/{code}")
 def update_request_type(code: str, body: RequiredFields, conn=Depends(get_conn)) -> dict:
     return intake.set_required_fields(conn, code, body.required_fields)
+
+
+# ---------------------------------------------------------------- 今日やること
+
+class ManualOrder(BaseModel):
+    request_ids: list[int]
+
+
+class Snooze(BaseModel):
+    snoozed: bool
+
+
+@app.get("/api/home")
+def home(conn=Depends(get_conn)) -> dict:
+    return today.build_home(conn, config.DATA_MODE, config.now(), config.DEMO_LAST_CHECKED)
+
+
+@app.put("/api/home/order")
+def set_order(body: ManualOrder, conn=Depends(get_conn)) -> dict:
+    """利用者が変更した並び順を保存する。"""
+    today.set_manual_order(conn, body.request_ids)
+    return {"status": "saved"}
+
+
+@app.put("/api/requests/{request_id}/snooze")
+def snooze(request_id: int, body: Snooze, conn=Depends(get_conn)) -> dict:
+    intake.get_request(conn, request_id)  # 存在しなければ 404
+    today.set_snoozed(conn, request_id, body.snoozed)
+    return {"status": "saved"}

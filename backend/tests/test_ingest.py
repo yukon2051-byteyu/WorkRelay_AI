@@ -83,3 +83,12 @@ def test_reset_clears_demo_data(client):
     client.post("/api/ingest")
     assert client.post("/api/demo/reset").status_code == 200
     assert client.get("/api/messages").json() == []
+
+
+def test_reset_then_ingest_reproduces_same_ids(client):
+    """やり直した後も同じ ID になる（URL で依頼を開くリンクが壊れない）。"""
+    client.post("/api/ingest")
+    first = [(r["id"], r["title"]) for r in client.get("/api/requests").json()]
+    client.post("/api/demo/reset")
+    client.post("/api/ingest")
+    assert [(r["id"], r["title"]) for r in client.get("/api/requests").json()] == first

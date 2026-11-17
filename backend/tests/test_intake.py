@@ -60,6 +60,9 @@ def test_teams_message_becomes_candidate_with_reasons(client):
     assert cand["message"]["channel"] == "teams"
     assert any("同じ依頼者" in r for r in cand["reasons"])
     assert any("売上資料" in r for r in cand["reasons"])
+    # 理由に対応する原文の箇所（画面で強調する）と、つないだ場合に変わる期限
+    assert cand["highlights"] == ["昨日メールでお願いした売上資料", "11時まで"]
+    assert cand["proposed_values"]["提出希望日時"] == "2026-11-18T11:00:00+09:00"
     # 判断前は、希望期限も確定期限も元のまま
     assert detail["requested_due"] == "2026-11-18T15:00:00+09:00"
     assert detail["committed_due"] == "2026-11-18T15:00:00+09:00"

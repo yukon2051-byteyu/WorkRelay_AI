@@ -430,6 +430,14 @@ def get_request(conn, request_id: int) -> dict:
         c = dict(c)
         c["reasons"] = json.loads(c["reasons"])
         c["message"] = dict(conn.execute("SELECT * FROM messages WHERE id = ?", (c["message_id"],)).fetchone())
+        # この候補を「同じ依頼」とつないだ場合に変わる値（期限など）と、元メッセージ内の強調箇所
+        found = rules.extract_fields(d["type_code"], c["message"]["body"], c["message"]["subject"],
+                                     datetime.fromisoformat(c["message"]["received_at"]))
+        current = {f["name"]: f["value"] for f in d["fields"]}
+        # 今の値と違う（つなぐと変わる・埋まる）値だけを候補の提案として扱う
+        c["proposed_values"] = {k: v.value for k, v in found.items() if v.value and current.get(k) != v.value}
+        c["highlights"] = rules.relation_highlights(
+            c["message"]["body"], d, {k: v for k, v in c["proposed_values"].items() if k != DUE_FIELD})
         cands.append(c)
     d["candidates"] = cands
     d["history"] = [dict(x) for x in conn.execute(

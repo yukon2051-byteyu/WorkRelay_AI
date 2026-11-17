@@ -148,8 +148,26 @@ ALL_TABLES = [
 
 def connect(path: Path) -> sqlite3.Connection:
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path)
+    # check_same_thread=False：FastAPI は接続を作るスレッドと使うスレッドが違うことがある。
+    #   接続は1リクエスト専用で他と共有しないので、この確認を外しても安全。
+    # timeout=10：別のリクエストが書き込み中なら、最大10秒待ってから処理する。
+    conn = sqlite3.connect(path, check_same_thread=False, timeout=10)
     conn.row_factory = sqlite3.Row  # 列名で値を取り出せるようにする
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(SCHEMA)
+    _migrate(conn)
     return conn
+
+
+# 後から追加した列。古いバージョンで作った DB ファイルにも足す（データは消さない）
+ADDED_COLUMNS = [
+    ("events", "request_id", "INTEGER"),
+]
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    for table, column, col_type in ADDED_COLUMNS:
+        existing = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
+        if column not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+    conn.commit()
