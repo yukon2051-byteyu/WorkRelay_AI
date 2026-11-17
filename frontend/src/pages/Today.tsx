@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { api, Card, CHANNEL, fmtDue, Home } from "../api";
+import { api, Card, CHANNEL, fmtDue, Home, tracking } from "../api";
 import CardItem from "../components/CardItem";
 import { HelpTip } from "../help";
 import { ChannelIcon, IconWarn } from "../icons";
@@ -52,6 +52,7 @@ export default function Today({ home, selectedId, onSelect, onChanged, onIngest 
   });
 
   const handleAction = async (id: number, target: string) => {
+    tracking.firstAction(id); // 最初の行動を決めた時刻（朝の段取り時間の計測）
     if (target === "snooze" || target === "unsnooze") {
       try {
         await api.snooze(id, target === "snooze");
@@ -116,7 +117,7 @@ export default function Today({ home, selectedId, onSelect, onChanged, onIngest 
             <span className="stat-label">今日の空き</span>
             <span className="stat-value">{fmtMinutes(freeMinutes)}</span>
           </div>
-          <button className="btn ghost breakdown-toggle" aria-expanded={showBreakdown} aria-controls="breakdown"
+          <button className="btn ghost breakdown-toggle" data-tour="breakdown-toggle" aria-expanded={showBreakdown} aria-controls="breakdown"
             onClick={() => setShowBreakdown((v) => !v)}>
             取り込みの内訳 {showBreakdown ? "▴" : "▾"}
           </button>

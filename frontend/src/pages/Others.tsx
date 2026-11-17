@@ -19,7 +19,7 @@ export function RequestsPage({ nowIso, version, onOpen }: { nowIso: string; vers
           <thead><tr><th>依頼</th><th>種別</th><th>依頼者</th><th>状態</th><th>不足</th><th>確定期限</th></tr></thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id} className="clickable" tabIndex={0} onClick={() => onOpen(r.id)} onKeyDown={(e) => e.key === "Enter" && onOpen(r.id)}>
+              <tr key={r.id} className="clickable" tabIndex={0} data-request-row={r.id} onClick={() => onOpen(r.id)} onKeyDown={(e) => e.key === "Enter" && onOpen(r.id)}>
                 <td>{r.title}</td>
                 <td>{r.type_name}</td>
                 <td>{r.requester_name}</td>
@@ -73,7 +73,7 @@ export function CalendarPage({ home, onOpen }: { home: Home; onOpen: (id: number
           ))}
           <h2 className="section-head" style={{ marginTop: 18 }}>登録した作業枠<span className="n">{work.length}件</span></h2>
           {work.map((e) => (
-            <div className="slot-row" key={e.id}>
+            <div className="slot-row" key={e.id} data-tour="cal-work">
               <span className="slot-time">{fmtDue(e.start_at, home.now)}–{fmtTime(e.end_at)}</span>
               <span>{titleOf(e.request_id)}</span>
               <span style={{ flex: 1 }} />
@@ -81,18 +81,6 @@ export function CalendarPage({ home, onOpen }: { home: Home; onOpen: (id: number
             </div>
           ))}
         </section>
-      </div>
-    </>
-  );
-}
-
-export function ReportPage() {
-  return (
-    <>
-      <div className="page-head"><h1>改善レポート<HelpTip id="report" label="改善レポート" /></h1></div>
-      <div className="empty">
-        <h2>計測データを準備中です</h2>
-        <p>朝の段取り時間・確認の往復回数・下書きの利用状況は、操作の記録を集計して表示します（ステップ8で追加）。</p>
       </div>
     </>
   );
@@ -145,15 +133,16 @@ export function SettingsPage({ mode, m365, guideOpen, onToggleGuide }: {
             </p>
             <h3>{m365.implemented ? "実利用時の接続手順" : "実連携を実装した場合の接続手順"}</h3>
             <ol>
-              <li>WorkRelay AIの「接続設定」から「Microsoft 365に接続」を選びます。</li>
+              <li>組織側の準備：会社の Microsoft 365 で、WorkRelay AI を利用できるように設定します（情報システム部門などの担当）。</li>
+              <li>WorkRelay AIの「接続設定」から「Microsoft 365に接続」を選び、Microsoftの画面で職場アカウントにサインインします。</li>
               <li>
-                Microsoftの画面で職場アカウントにサインインし、Outlookメール・Teamsチャット・予定表の読み取りを許可します。
+                Outlookメール・Teamsチャット・予定表の読み取りを許可します。
                 会社の設定によっては、Microsoft 365管理者の承認が必要です。
               </li>
-              <li>接続できたデータを同期すると、届いた依頼や今日の予定をもとに、優先順位と返信案を確認できます。</li>
+              <li>初回同期を行うと、届いた依頼や今日の予定をもとに、優先順位と返信案を確認できます。</li>
             </ol>
-            <p className="faint">
-              Outlookへの下書き保存や予定表への作業枠の登録を使う場合は、読み取りとは別に書き込みの権限が必要です。
+            <p className="faint" data-tour="guide-perm">
+              必要な権限は用途ごとに異なります。読み取り（メール・チャット・予定表）に加えて、Outlookへの下書き保存や予定表への作業枠の登録を使う場合は、書き込みの権限が別に必要です。
             </p>
             {/* 接続できる環境でだけ、実際に操作できるボタンを出す */}
             {m365.connectable && <button className="btn primary">Microsoft 365に接続</button>}

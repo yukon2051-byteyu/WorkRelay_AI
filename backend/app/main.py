@@ -3,7 +3,7 @@ from collections.abc import Iterator
 import json
 import sqlite3
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, Response
 from urllib.parse import quote
 from pydantic import BaseModel
@@ -13,6 +13,7 @@ from app.db import ALL_TABLES, connect
 from app.documents import service as documents
 from app.drafts import service as drafts
 from app.intake import service as intake
+from app.metrics import service as metrics
 from app.pipeline import run_pipeline
 from app.planning import today, work_slots
 from app.sources.demo import DemoSource
@@ -31,9 +32,21 @@ def _bad_request(_: Request, exc: ValueError):
     return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
-def get_conn() -> Iterator[sqlite3.Connection]:
-    """リクエストごとに DB へ接続し、終わったら閉じる。テストでは差し替える。"""
-    conn = connect(config.db_path())
+def get_conn(
+    x_workrelay_space: str | None = Header(default=None),
+    space: str | None = Query(default=None),
+) -> Iterator[sqlite3.Connection]:
+    """リクエストごとに DB へ接続し、終わったら閉じる。テストでは差し替える。
+
+    デモツアーの通信には「tour」の目印（ヘッダー、またはダウンロード用の ?space=tour）が付く。
+    その場合はツアー専用の DB を使い、利用者が自由に操作しているデモのデータを変えない。
+    """
+    chosen = x_workrelay_space or space
+    if chosen not in (None, "", "tour"):
+        raise HTTPException(status_code=400, detail="不明なデータ領域です")
+    if chosen == "tour" and config.DATA_MODE != "demo":
+        raise HTTPException(status_code=400, detail="デモツアーはデモモードでのみ使えます")
+    conn = connect(config.db_path("tour" if chosen == "tour" else None))
     try:
         yield conn
     finally:
@@ -254,6 +267,26 @@ def create_work_slot(request_id: int, body: SlotCreate, conn=Depends(get_conn)) 
 def delete_work_slot(event_id: int, conn=Depends(get_conn)) -> dict:
     work_slots.unregister(conn, event_id)
     return {"status": "deleted"}
+
+
+# ---------------------------------------------------------------- 改善レポート
+
+class Usage(BaseModel):
+    session_id: str
+    kind: str
+    request_id: int | None = None
+
+
+@app.post("/api/usage")
+def post_usage(body: Usage, conn=Depends(get_conn)) -> dict:
+    """画面の利用記録（朝の段取り時間の計測用）。"""
+    metrics.record_usage(conn, body.session_id, body.kind, body.request_id)
+    return {"status": "recorded"}
+
+
+@app.get("/api/report")
+def report(conn=Depends(get_conn)) -> dict:
+    return metrics.build_report(conn, config.DATA_MODE)
 
 
 # ---------------------------------------------------------------- 今日やること

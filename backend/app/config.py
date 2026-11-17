@@ -34,8 +34,9 @@ M365_ENABLED = os.environ.get("WORKRELAY_M365_ENABLED", "false").lower() == "tru
 
 
 def db_path(mode: str | None = None) -> Path:
+    """DB ファイルの場所。tour はデモツアー専用（利用者が自由に操作するデモとは別のファイル）。"""
     mode = mode or DATA_MODE
-    if mode not in ("demo", "m365"):
+    if mode not in ("demo", "m365", "tour"):
         raise ValueError(f"不明なモードです: {mode}")
     return DATA_DIR / f"workrelay_{mode}.db"
 

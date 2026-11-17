@@ -180,12 +180,57 @@ export type Draft = {
 
 export type Health = { status: string; mode: string; m365: { implemented: boolean; connectable: boolean } };
 
+// ---- 画面の利用記録（朝の段取り時間の計測）。開いた時刻と、最初の操作の時刻だけを送る
+function newSessionId(): string {
+  try {
+    const saved = window.sessionStorage.getItem("workrelay.session");
+    if (saved) return saved;
+    const id = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    window.sessionStorage.setItem("workrelay.session", id);
+    return id;
+  } catch {
+    return Math.random().toString(36).slice(2);
+  }
+}
+const usage = { session: newSessionId(), opened: false, acted: false };
+
+// ---- データ領域：デモツアー中は「tour」（ツアー専用のDB）を使い、利用者のデモのデータを変えない
+let space: "demo" | "tour" = "demo";
+export const dataSpace = {
+  get: () => space,
+  set: (s: "demo" | "tour") => { space = s; },
+};
+const NOT_ACTIONS = ["/api/usage", "/api/demo/reset", "/api/ingest"];
+
+export const tracking = {
+  /** 「今日やること」を開いた（朝の確認を開始） */
+  homeOpened() {
+    if (usage.opened || space === "tour") return; // ツアー中の操作は計測に含めない
+    usage.opened = true;
+    fetch("/api/usage", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: usage.session, kind: "home_open" }) }).catch(() => {});
+  },
+  /** 最初の行動を決めた（返信案を開く・判断・並べ替えなど） */
+  firstAction(requestId?: number) {
+    if (!usage.opened || usage.acted || space === "tour") return;
+    usage.acted = true;
+    fetch("/api/usage", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: usage.session, kind: "first_action", request_id: requestId ?? null }) }).catch(() => {});
+  },
+  /** デモをやり直したら、計測も最初から */
+  restart() {
+    usage.session = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    usage.opened = false;
+    usage.acted = false;
+  },
+};
+
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const res = await fetch(path, {
-    method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  if (method !== "GET" && !NOT_ACTIONS.some((p) => path.startsWith(p))) tracking.firstAction();
+  const headers: Record<string, string> = {};
+  if (body) headers["Content-Type"] = "application/json";
+  if (space === "tour") headers["X-WorkRelay-Space"] = "tour";
+  const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
   if (!res.ok) {
     let detail = `HTTP ${res.status}`;
     try {
@@ -221,10 +266,37 @@ export const api = {
   setFilePermission: (requestId: number, fileName: string, allowed: boolean) =>
     call("PUT", `/api/requests/${requestId}/files`, { file_name: fileName, allowed }),
   createDocument: (requestId: number) => call<DocumentDraft>("POST", `/api/requests/${requestId}/document`),
-  documentUrl: (id: number) => `/api/documents/${id}/download`,
+  documentUrl: (id: number) => `/api/documents/${id}/download${space === "tour" ? "?space=tour" : ""}`,
   createSlot: (requestId: number, start: string, end: string) =>
     call<CalEvent>("POST", `/api/requests/${requestId}/work-slots`, { start, end }),
   deleteSlot: (eventId: number) => call("DELETE", `/api/work-slots/${eventId}`),
+  report: () => call<Report>("GET", "/api/report"),
+};
+
+export type Report = {
+  labels: { sample: string; measured: string; real: string };
+  morning: {
+    measured: { count: number; latest_seconds: number; median_seconds: number; condition: string } | null;
+    sample: {
+      before: { label: string; period: string; days: number; median_minutes: number };
+      after: { label: string; period: string; days: number; median_minutes: number };
+      condition: string;
+    };
+    real: null;
+  };
+  flow: {
+    rows: { id: number; title: string; type: string; round_trips: number; hours_to_ready: number | null; complete_first: boolean }[];
+    by_type: { type: string; count: number; complete_first_rate: number; avg_round_trips: number; avg_hours_to_ready: number | null; ready_count: number }[];
+    period: string | null;
+    condition: string;
+  };
+  drafts: { drafts: { as_is: number; edited: number; unused: number; pending: number }; total: number; document_downloads: number; condition: string };
+  missing: { type: string; count: number; fields: { field: string; count: number }[]; hint: string | null }[];
+  template_change: {
+    type: string; change: string; condition: string;
+    before: { period: string; count: number; complete_first_rate: number; avg_round_trips: number; avg_hours_to_ready: number };
+    after: { period: string; count: number; complete_first_rate: number; avg_round_trips: number; avg_hours_to_ready: number };
+  };
 };
 
 // ---- 表示用の小道具

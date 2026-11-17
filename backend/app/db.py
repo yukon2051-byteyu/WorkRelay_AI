@@ -162,6 +162,16 @@ CREATE TABLE IF NOT EXISTS document_events (
     action      TEXT NOT NULL    -- generated / regenerated / downloaded
 );
 
+-- 画面の利用記録（効果測定用）。時刻は実際の時計（デモの固定時刻ではない）
+CREATE TABLE IF NOT EXISTS usage_events (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    kind       TEXT NOT NULL,   -- home_open（朝の確認を開始） / first_action（最初の行動を決めた）
+    at         TEXT NOT NULL,
+    request_id INTEGER,
+    detail     TEXT
+);
+
 -- アプリの状態フラグ（デモの持ち越しを適用済みか など）
 CREATE TABLE IF NOT EXISTS app_meta (
     key   TEXT PRIMARY KEY,
@@ -197,7 +207,7 @@ CREATE TABLE IF NOT EXISTS ingest_runs (
 
 # 削除するときの順番（参照される側を後に消す）
 ALL_TABLES = [
-    "document_events", "documents", "file_permissions", "draft_events", "drafts", "request_history", "relation_candidates", "message_classes", "request_messages",
+    "usage_events", "document_events", "documents", "file_permissions", "draft_events", "drafts", "request_history", "relation_candidates", "message_classes", "request_messages",
     "request_fields", "requests", "request_types", "events", "messages", "ingest_runs", "app_meta",
 ]
 

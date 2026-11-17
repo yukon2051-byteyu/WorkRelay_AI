@@ -7,8 +7,53 @@
  *   コーラル --danger：期限超過・同期失敗・要確認の連絡
  *   連絡元：Outlook＝ブルー、Teams＝ライラック
  * 文字の明るさは3段階：本文・行動タイトル（--text）＞判断理由（--text-reason）＞所属・時刻など（--text-faint）
+ *
+ * テーマ：<html data-theme="light|dark">。初期値はライト（index.html で、保存済みのテーマを最初の描画前に適用）。
+ * ライト … 柔らかいオフホワイトの背景、白に近い読む面、濃いスレートの文字。状態は「薄い面＋濃い文字」で示す
+ * ダーク … 従来の配色
  */
-:root {
+:root, :root[data-theme="light"] {
+  --bg: #f5f6f8;
+  --nav: #edf0f5;
+  --surface: #fcfcfd;
+  --surface-2: #f0f2f6;
+  --surface-top: #ffffff;
+  --surface-hover: #f3f5f9;
+  --surface-selected: #eceeff;
+  --border: #d9dee7;
+  --border-strong: #bcc4d1;
+  --text: #202735;
+  --text-reason: #323b4b;
+  --text-sub: #515d70;
+  --text-faint: #5b6779;
+  --accent: #5145a6;
+  --accent-strong: #43388f;
+  --accent-bg: #eceeff;
+  --on-accent: #ffffff;
+  --cyan: #157585;
+  --cyan-bg: #e3f2f4;
+  --warn: #78480d;
+  --warn-bg: #fff1d6;
+  --ok: #236148;
+  --ok-bg: #e4f3ec;
+  --danger: #a3332b;
+  --danger-bg: #fde8e6;
+  --outlook: #1d5fa6;
+  --teams: #5b3fa6;
+  /* 影・幕・ツアー（ライトは幕を薄く、ポップアップは白に近い面と薄い青紫の境界線） */
+  --shadow: rgba(32, 39, 53, 0.14);
+  --scrim: rgba(32, 39, 53, 0.32);
+  --tour-scrim: rgba(32, 39, 53, 0.26);
+  --tour-spot: #157585;
+  --pop-bg: #ffffff;
+  --pop-border: #b9b2e6;
+  --mark-line: #c08a2c;
+  --radius: 8px;
+  --font: "Inter", "Segoe UI", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
   --bg: #14151a;
   --nav: #1b1c23;
   --surface: #22242d;
@@ -36,8 +81,13 @@
   --danger-bg: rgba(255, 140, 133, 0.12);
   --outlook: #6cb2ff;
   --teams: #c6a8ff;
-  --radius: 8px;
-  --font: "Inter", "Segoe UI", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  --shadow: rgba(0, 0, 0, 0.45);
+  --scrim: rgba(0, 0, 0, 0.55);
+  --tour-scrim: rgba(8, 9, 14, 0.5);
+  --tour-spot: #67d9ec;
+  --pop-bg: #2e3041;
+  --pop-border: #53566c;
+  --mark-line: rgba(245, 197, 106, 0.55);
   color-scheme: dark;
 }
 
@@ -80,6 +130,13 @@ dl, dd { margin: 0; }
 .demo-bar .demo-tag { color: var(--accent); border: 1px solid var(--accent-bg); border-radius: 4px; padding: 0 6px; font-weight: 600; }
 .demo-bar .spacer { flex: 1; }
 .demo-bar .btn { font-size: 12px; padding: 1px 8px; }
+/* 表示テーマ：控えめな2択。選んでいる側は面と文字の両方で示す */
+/* ツアー中（幕 z-index:30）でも切り替えられるよう、幕より上に置く */
+.theme-switch { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--border); border-radius: 6px; padding: 1px; position: relative; z-index: 31; background: var(--bg); }
+.theme-label { color: var(--text-faint); font-size: 11.5px; padding: 0 6px 0 4px; }
+.theme-switch button { background: none; border: 0; border-radius: 4px; padding: 1px 8px; font-size: 12px; color: var(--text-sub); cursor: pointer; }
+.theme-switch button:hover { color: var(--text); }
+.theme-switch button.on { background: var(--accent-bg); color: var(--accent); font-weight: 700; }
 
 .workspace { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; }
 .workspace.with-detail { grid-template-columns: minmax(400px, 1fr) minmax(360px, 440px); }
@@ -182,7 +239,7 @@ dl, dd { margin: 0; }
 /* ---- メニュー（補助操作） ---- */
 .menu-wrap { position: relative; }
 .btn.more { font-size: 16px; line-height: 1; padding: 4px 8px; letter-spacing: 1px; }
-.menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 5; min-width: 200px; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 8px; padding: 4px; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45); display: flex; flex-direction: column; }
+.menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 5; min-width: 200px; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 8px; padding: 4px; box-shadow: 0 8px 28px var(--shadow); display: flex; flex-direction: column; }
 .menu-item { text-align: left; background: none; border: 0; padding: 7px 10px; border-radius: 5px; cursor: pointer; font-size: 13px; white-space: nowrap; }
 .menu-item:hover, .menu-item:focus-visible { background: var(--accent-bg); outline: none; }
 .menu-item:disabled { color: var(--text-faint); cursor: not-allowed; background: none; }
@@ -200,7 +257,7 @@ dl, dd { margin: 0; }
 .ch-outlook { color: var(--outlook); }
 .ch-teams { color: var(--teams); }
 /* 判断の根拠に対応する原文の箇所（原文は変えず、軽く強調） */
-mark.hl { background: var(--warn-bg); color: var(--text); border-bottom: 1px solid rgba(245, 197, 106, 0.55); border-radius: 2px; padding: 0 1px; }
+mark.hl { background: var(--warn-bg); color: var(--text); border-bottom: 1px solid var(--mark-line); border-radius: 2px; padding: 0 1px; }
 /* 補足（情報）は枠を付けず控えめに。先頭の「・」で区切りを示す */
 .badge.plain { background: none; border-color: transparent; padding: 0; color: var(--text-sub); }
 .badge.plain::before { content: "・"; color: var(--text-faint); }
@@ -221,6 +278,8 @@ mark.hl { background: var(--warn-bg); color: var(--text); border-bottom: 1px sol
 .detail-head { position: sticky; top: 0; background: var(--surface); padding: 14px 20px 10px; border-bottom: 1px solid var(--border); z-index: 1; }
 .detail-head-row { display: flex; align-items: center; gap: 8px; }
 .detail-head h2 { font-size: 17px; line-height: 1.4; font-weight: 700; }
+.status-actions { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.status-actions:empty { display: none; }
 .detail-links { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
 .detail-links .btn { font-size: 12px; padding: 2px 8px; }
 .detail-body { padding: 4px 20px; }
@@ -280,10 +339,33 @@ mark.hl { background: var(--warn-bg); color: var(--text); border-bottom: 1px sol
 .draft-foot { display: flex; align-items: center; gap: 8px; min-height: 20px; margin-top: 2px; }
 .changes { margin: 4px 0 8px; padding-left: 18px; }
 .suggestion, .dialog-body { white-space: pre-wrap; font: inherit; font-size: 13px; background: var(--surface-2); border-radius: 6px; padding: 10px; margin: 8px 0 0; max-height: 260px; overflow: auto; }
-.overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); display: grid; place-items: center; z-index: 20; padding: 16px; }
-.dialog { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; padding: 18px 20px; width: min(560px, 100%); max-height: 90vh; overflow: auto; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5); }
+.overlay { position: fixed; inset: 0; background: var(--scrim); display: grid; place-items: center; z-index: 20; padding: 16px; }
+.dialog { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; padding: 18px 20px; width: min(560px, 100%); max-height: 90vh; overflow: auto; box-shadow: 0 16px 48px var(--shadow); }
 .dialog h2 { font-size: 16px; margin-bottom: 4px; }
 .dialog .muted { font-size: 13px; margin: 0 0 6px; }
+
+/* ---- 改善レポート ---- */
+.report .page-head .sub { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.rp { margin-bottom: 26px; }
+.rp h2 { font-size: 15px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rp > .faint { margin: 0 0 8px; }
+.src { font-size: 11.5px; font-weight: 600; border-radius: 4px; padding: 0 6px; border: 1px solid var(--border-strong); color: var(--text-sub); white-space: nowrap; }
+.src-measured { color: var(--cyan); border-color: var(--cyan); }
+.src-real { border-style: dashed; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+.tile-label { font-size: 12.5px; color: var(--text-sub); margin-top: 6px; }
+.tile-value { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.3; }
+.tile-value small { font-size: 14px; font-weight: 600; margin-left: 2px; }
+.rp .table td.num { font-variant-numeric: tabular-nums; }
+.rp-details summary { cursor: pointer; color: var(--text-sub); margin: 8px 0; font-size: 13px; }
+.bar { display: block; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+.missing-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+.mini { width: 100%; font-size: 13px; border-collapse: collapse; margin-top: 4px; }
+.mini td { padding: 3px 0; border-bottom: 1px solid var(--border); }
+.mini td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.hint { margin: 8px 0 0; font-size: 12.5px; color: var(--text-reason); border-left: 3px solid var(--cyan); padding-left: 8px; }
 
 /* ---- 作業枠 ---- */
 .planner { margin-top: 10px; }
@@ -358,7 +440,7 @@ a.btn { text-decoration: none; }
 .help-wrap { position: relative; display: inline-flex; margin-left: 6px; vertical-align: middle; }
 .help-icon { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--cyan); background: var(--cyan-bg); color: var(--cyan); font-size: 11px; font-weight: 700; line-height: 1; cursor: pointer; display: grid; place-items: center; padding: 0; }
 .help-icon[aria-expanded="true"] { background: var(--cyan); color: var(--on-accent); }
-.help-pop { position: fixed; z-index: 25; width: 280px; max-width: calc(100vw - 24px); background: var(--surface-2); border: 1px solid var(--border-strong); border-left: 3px solid var(--cyan); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 13px; font-weight: 400; line-height: 1.6; letter-spacing: 0; text-transform: none; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); animation: fade-in 0.15s ease-out; }
+.help-pop { position: fixed; z-index: 25; width: 280px; max-width: calc(100vw - 24px); background: var(--surface-2); border: 1px solid var(--border-strong); border-left: 3px solid var(--cyan); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 13px; font-weight: 400; line-height: 1.6; letter-spacing: 0; text-transform: none; box-shadow: 0 8px 24px var(--shadow); animation: fade-in 0.15s ease-out; }
 .nav-group { display: contents; }
 .howto-menu { min-width: 240px; }
 .menu-check { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -375,13 +457,37 @@ a.btn { text-decoration: none; }
 .intro-close { position: absolute; top: 10px; right: 10px; font-size: 18px; }
 .tour { position: fixed; inset: 0; z-index: 30; }
 .tour-blocker { position: fixed; inset: 0; }
-.tour-spot { position: fixed; border: 2px solid var(--cyan); border-radius: 10px; box-shadow: 0 0 0 9999px rgba(8, 9, 14, 0.62), 0 0 0 6px rgba(103, 217, 236, 0.18); transition: top 0.2s ease, left 0.2s ease, width 0.2s ease, height 0.2s ease; pointer-events: none; }
-.tour-pop { position: fixed; width: 340px; max-width: calc(100vw - 24px); background: var(--surface-2); border: 1px solid var(--border-strong); border-top: 3px solid var(--cyan); border-radius: 10px; padding: 14px 16px 12px; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55); opacity: 0; }
+/* 注目エリア：シアンの細い枠だけ（発光・二重線なし）。周りは軽く暗くし、枠の中は通常画面のまま */
+.tour-spot { position: fixed; border: 1.5px solid var(--tour-spot); border-radius: 8px; box-shadow: 0 0 0 9999px var(--tour-scrim); transition: top 0.2s ease, left 0.2s ease, width 0.2s ease, height 0.2s ease; pointer-events: none; }
+.tour-pop { position: fixed; width: 340px; max-width: calc(100vw - 24px); background: var(--surface-2); border: 1px solid var(--border-strong); border-top: 3px solid var(--cyan); border-radius: 10px; padding: 14px 16px 12px; box-shadow: 0 12px 36px var(--shadow); opacity: 0; }
 .tour-pop.shown { opacity: 1; animation: fade-in 0.2s ease-out; }
 .tour-pop h2 { font-size: 16px; margin: 2px 0 6px; }
 .tour-pop p { margin: 0; color: var(--text-reason); font-size: 13.5px; }
 .tour-count { font-size: 12px; color: var(--cyan); font-weight: 700; }
 .tour-buttons { display: flex; gap: 6px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
+/* 3分デモツアー：説明ポップアップは「読む場所」。注目エリア（シアンの枠）とは色・形で区別する
+   一段明るい青紫寄りのチャコール、落ち着いた境界線、シアンは使わない。青紫は「次へ」とタイムバーだけ */
+.tour-pop.story { width: 400px; background: var(--pop-bg); border: 1px solid var(--pop-border); border-top: 1px solid var(--pop-border); border-radius: 10px; padding: 14px 18px 14px; box-shadow: 0 14px 40px var(--shadow); }
+.tour-pop.final { width: min(560px, calc(100vw - 24px)); }
+.tour-dim { position: fixed; inset: 0; background: var(--tour-scrim); }
+.tour-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.tour-scene { font-weight: 700; font-size: 14px; color: var(--text); }
+.tour-time { color: var(--text-sub); font-weight: 600; font-variant-numeric: tabular-nums; }
+.tour-pop.story .tour-count { color: var(--text-faint); font-weight: 400; }
+.tour-pop.story .btn { background: transparent; }
+.tour-pop.story .btn.primary { background: var(--accent); }
+.tour-text { margin: 8px 0 0; color: var(--text); font-size: 14px; line-height: 1.7; }
+.tour-more { margin-top: 8px; font-size: 13px; color: var(--text-reason); }
+.tour-more summary { cursor: pointer; color: var(--accent); font-size: 12.5px; }
+.tour-more ul { margin: 4px 0 0; padding-left: 18px; }
+.tour-more p { margin: 4px 0 0; }
+.tour-progress { height: 3px; background: var(--surface); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+.tour-progress > span { display: block; height: 100%; background: var(--accent); transition: width 0.1s linear; }
+.tour-loading { margin-top: 6px; }
+.final-body h2 { font-size: 18px; margin: 8px 0 6px; }
+.final-body p { color: var(--text-reason); margin: 0 0 8px; font-size: 13.5px; line-height: 1.7; }
+.final-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+@media (prefers-reduced-motion: reduce) { .tour-progress > span { transition: none; } }
 /* OS で「動きを減らす」設定をしている人には、移動やアニメーションをしない */
 @media (prefers-reduced-motion: reduce) {
   .intro, .intro-overlay, .tour-pop.shown, .help-pop { animation: none; }
@@ -390,4 +496,4 @@ a.btn { text-decoration: none; }
 
 /* 画面には出さず、読み上げソフトにだけ伝えるラベル */
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--surface-2); border: 1px solid var(--border); padding: 8px 16px; border-radius: 8px; font-size: 13px; z-index: 10; box-shadow: 0 6px 24px rgba(0,0,0,.4); }
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--surface-2); border: 1px solid var(--border); padding: 8px 16px; border-radius: 8px; font-size: 13px; z-index: 10; box-shadow: 0 6px 24px var(--shadow); }

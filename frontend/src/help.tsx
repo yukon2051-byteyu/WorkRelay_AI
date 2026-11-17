@@ -21,10 +21,18 @@ function write(key: string, value: string) {
     /* 保存できなくても画面は動かす */
   }
 }
+const KEY_THEME = "workrelay.theme"; // 表示テーマ（light / dark）
+
+export type Theme = "light" | "dark";
 export const prefs = {
+  theme: (): Theme => (read(KEY_THEME) === "dark" ? "dark" : "light"), // 初期値はライト（OSの設定にかかわらず）
+  setTheme: (t: Theme) => {
+    write(KEY_THEME, t);
+    document.documentElement.setAttribute("data-theme", t); // 色だけを切り替えるので、画面の状態はそのまま
+  },
   tourSeen: () => read(KEY_TOUR_SEEN) === "1",
   setTourSeen: () => write(KEY_TOUR_SEEN, "1"),
-  helpOn: () => read(KEY_HELP_ON) === "1",
+  helpOn: () => read(KEY_HELP_ON) !== "0", // 初期値は ON（一度 OFF にしたら OFF のまま）
   setHelpOn: (on: boolean) => write(KEY_HELP_ON, on ? "1" : "0"),
 };
 

@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WorkRelay AI</title>
+    <script>
+      // 保存済みの表示テーマを、最初の描画より前に適用する（読み込み時の明暗のちらつきを防ぐ）。初期値はライト
+      (function () {
+        var t = "light";
+        try { if (localStorage.getItem("workrelay.theme") === "dark") t = "dark"; } catch (e) {}
+        document.documentElement.setAttribute("data-theme", t);
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />

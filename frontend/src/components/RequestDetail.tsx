@@ -91,6 +91,20 @@ export default function RequestDetail({ requestId, card, nowIso, events, freeSlo
         </div>
         <h2 style={{ marginTop: 6 }}>{d.title}</h2>
         <div className="faint">{d.requester_name}・{d.requester_email}</div>
+        {/* 依頼の進行状態を、利用者が自分で進める（作業開始・完了・取り消し）。すべて履歴に残る */}
+        <div className="status-actions" data-sec="status">
+          {d.status === "ready" && (
+            <button className="btn ghost" disabled={busy} onClick={() => run(() => api.updateRequest(d.id, { status: "in_progress" }), "作業中にしました")}>作業を始める</button>
+          )}
+          {(d.status === "ready" || d.status === "in_progress") && (
+            <button className="btn" disabled={busy} onClick={() => run(() => api.updateRequest(d.id, { status: "done" }), "完了にしました。今日の一覧から外れます")}>
+              <IconCheck size={13} /> 完了にする
+            </button>
+          )}
+          {d.status === "done" && (
+            <button className="btn ghost" disabled={busy} onClick={() => run(() => api.updateRequest(d.id, { status: "in_progress" }), "完了を取り消しました")}>完了を取り消す</button>
+          )}
+        </div>
         <nav className="detail-links" aria-label="詳細内の移動">
           <button className="btn ghost" onClick={() => jump(pendingCands.length ? "candidate" : "evidence")}>
             元の連絡（{d.messages.length}件{pendingCands.length ? `＋候補${pendingCands.length}件` : ""}）
@@ -242,7 +256,7 @@ export default function RequestDetail({ requestId, card, nowIso, events, freeSlo
         </section>
 
         {/* ---- 項目 ---- */}
-        <section className="block">
+        <section className="block" data-sec="fields">
           <h3>着手に必要な項目</h3>
           <table className="fields">
             <tbody>

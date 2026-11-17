@@ -1,0 +1,15 @@
+{
+  "_comment": "架空のサンプル値。導入前後の比較を示すための例で、実測値ではない。画面では必ず『サンプル値』と表示する。",
+  "morning_planning": {
+    "before": {"label": "導入前（手作業で確認）", "period": "2026-09-01〜2026-09-30", "days": 20, "median_minutes": 32},
+    "after": {"label": "導入後（WorkRelay AI）", "period": "2026-10-01〜2026-10-31", "days": 21, "median_minutes": 9},
+    "condition": "朝の確認を始めてから、最初に取る行動と優先順位を決めるまで（営業日の中央値）"
+  },
+  "template_change": {
+    "type": "データ抽出",
+    "change": "受付テンプレートに『対象部門』の欄を追加（2026-10-16）",
+    "before": {"period": "2026-09-01〜2026-10-15", "count": 18, "complete_first_rate": 22, "avg_round_trips": 1.9, "avg_hours_to_ready": 26.4},
+    "after": {"period": "2026-10-16〜2026-11-17", "count": 15, "complete_first_rate": 60, "avg_round_trips": 1.0, "avg_hours_to_ready": 9.8},
+    "condition": "依頼を受けてから、着手に必要な項目がそろうまで。往復＝確認を送った回数"
+  }
+}

@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, Card, fmtDue, Health, Home } from "./api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { api, Card, dataSpace, Health, Home, tracking } from "./api";
 import RequestDetail from "./components/RequestDetail";
-import { IntroDialog, Tour, TourStep } from "./components/Tour";
-import { HelpContext, HelpId, prefs } from "./help";
+import { ExitDest, IntroDialog, StoryTour } from "./components/Tour";
+import { Beat, buildStory, resolveIds } from "./tour/story";
+import { HelpContext, HelpId, prefs, Theme } from "./help";
 import { IconCalendar, IconChart, IconInbox, IconPlug, IconToday } from "./icons";
-import { CalendarPage, ReportPage, RequestsPage, SettingsPage } from "./pages/Others";
+import { CalendarPage, RequestsPage, SettingsPage } from "./pages/Others";
+import ReportPage from "./pages/Report";
 import Today from "./pages/Today";
 
 type Page = "today" | "requests" | "calendar" | "report" | "settings";
@@ -26,7 +28,9 @@ export default function App() {
 
   // ---- 使い方：初回の概要・ツアー・画面の説明（設定はこのブラウザに保存。デモをやり直しても残る）
   const [showIntro, setShowIntro] = useState(false);
-  const [touring, setTouring] = useState(false);
+  const [tourBeats, setTourBeats] = useState<Beat[] | null>(null); // null = ツアー中でない
+  const [tourStarting, setTourStarting] = useState(false);
+  const tourSpeed = Math.max(1, Number(params.get("tourSpeed")) || 1); // 確認用の早送り（通常は1）
   const [helpOn, setHelpOnState] = useState(prefs.helpOn());
   const [openTip, setOpenTip] = useState<HelpId | null>(null);
   const [howtoOpen, setHowtoOpen] = useState(false);
@@ -84,54 +88,71 @@ export default function App() {
       changed(`取り込みに失敗しました：${(e as Error).message}`);
     }
   };
+  // 「今日やること」を表示したら、朝の確認の開始として記録する（段取り時間の計測。ツアー中は記録しない）
+  useEffect(() => {
+    if (home && page === "today" && !showIntro && !tourBeats) tracking.homeOpened();
+  }, [home, page, showIntro, tourBeats]);
+
   const resetDemo = async () => {
+    tracking.restart();
     await api.resetDemo();
     setSelected(null);
     await ingest();
   };
 
-  // ---- ツアーの内容。文言は実際のデータ（先頭の依頼・期限）から作る。表示の切り替えだけを行い、データは変えない
-  const tourSteps: TourStep[] = useMemo(() => {
-    if (!topCard || !home) return [];
-    const wish = topCard.due.proposed ?? (topCard.due.change_status ? topCard.due.requested : null);
-    return [
-      {
-        target: ".card-top",
-        title: "今日最初に動く仕事",
-        body: `今日最初に動く仕事と、その理由が分かります。この例では「${topCard.why_now[0]}」。並び順はデモの固定ルールで決めています。`,
-        prepare: () => { setPage("today"); setSelected(null); },
-      },
-      {
-        target: wish ? "[data-sec=candidate]" : "[data-sec=evidence]",
-        title: "なぜ優先されたかを、元の連絡で確かめる",
-        body: wish
-          ? `選んだ依頼の詳細と、元のTeamsメッセージです。新しい希望期限は${fmtDue(wish, home.now)}、引き受け済みの期限は${fmtDue(topCard.due.committed, home.now)}です。同じ依頼かどうかは、あなたが判断します。`
-          : "選んだ依頼の詳細と、元の連絡です。優先された理由を、元の文面で確かめられます。",
-        prepare: () => setSelected({ id: topCard.request_id, focus: wish ? "candidate" : "evidence" }),
-      },
-      {
-        target: ".card-top .card-buttons",
-        title: "返信案と資料の下書き",
-        body: "返信案や資料の下書きがあるときは、ここから開けます。内容を確認し、必要なところを直して使えます。送信や保存は、あなたが確認してから行います。",
-      },
-      {
-        target: "[data-tour=nav-more] .nav-item", // 枠（display: contents）は大きさを持たないので、中のボタン2つを囲む
-        title: "予定表と改善レポート",
-        body: "予定表では作業時間を確保できるか確認します。改善レポートでは、段取り時間や確認の往復を振り返れます。",
-      },
-    ];
-  }, [topCard, home]);
+  // ---- 3分デモツアー。ツアー中はツアー専用のデータ領域を使い、利用者のデモのデータを変えない
+  const refresh = useCallback(async () => {
+    setVersion((v) => v + 1);
+    await load();
+  }, [load]);
+  const resetTourData = useCallback(async () => {
+    await api.resetDemo(); // ツアー専用の領域だけを初期状態に戻す（dataSpace が tour のとき）
+    await api.ingest();
+    await refresh();
+  }, [refresh]);
 
-  const startTour = () => {
+  const startTour = async () => {
     setShowIntro(false);
     setHowtoOpen(false);
     setOpenTip(null);
-    setTouring(true);
+    setTourStarting(true);
+    try {
+      dataSpace.set("tour");
+      await resetTourData();
+      const ids = await resolveIds();
+      const ctl = {
+        page: (p: Page) => setPage(p),
+        select: (id: number | null, focus?: string) => setSelected(id == null ? null : { id, focus }),
+        guide: (open: boolean) => setGuideOpen(open),
+        refresh,
+      };
+      setTourBeats(buildStory(ctl, ids));
+    } catch (e) {
+      dataSpace.set("demo");
+      await refresh();
+      setToast(`ツアーを開始できませんでした：${(e as Error).message}`);
+    } finally {
+      setTourStarting(false);
+    }
   };
-  const endTour = (focusBack = true) => {
+
+  /** ツアーを終える：利用者のデモの領域に戻り、選んだ画面を開く */
+  const exitTour = async (dest: ExitDest) => {
     prefs.setTourSeen();
-    setTouring(false);
-    if (focusBack) window.setTimeout(() => howtoBtn.current?.focus(), 0); // 開始ボタンにフォーカスを戻す
+    setTourBeats(null);
+    dataSpace.set("demo");
+    setGuideOpen(false);
+    setSelected(null);
+    setPage("today");
+    await refresh();
+    const reqs = await api.requests().catch(() => []);
+    const sales = reqs.find((r) => r.title.startsWith("売上資料"));
+    if (dest === "reply" && sales) setSelected({ id: sales.id, focus: "draft" });
+    else if (dest === "document" && sales) setSelected({ id: sales.id, focus: "document" });
+    else if (dest === "calendar") setPage("calendar");
+    else if (dest === "report") setPage("report");
+    if (dest === "aborted") window.setTimeout(() => howtoBtn.current?.focus(), 50); // 開始ボタンにフォーカスを戻す
+    else if (dest === "free") window.setTimeout(() => document.querySelector<HTMLElement>(".card-top")?.focus(), 300);
   };
   const skipIntro = () => {
     prefs.setTourSeen();
@@ -180,20 +201,21 @@ export default function App() {
               </>
             )}
             <span className="spacer" />
+            <ThemeSwitch />
             <div className="menu-wrap">
               <button ref={howtoBtn} className="btn ghost" aria-haspopup="menu" aria-expanded={howtoOpen}
                 onClick={() => setHowtoOpen((v) => !v)}>使い方 ▾</button>
               {howtoOpen && (
                 <HowtoMenu
                   helpOn={helpOn}
-                  canTour={tourSteps.length > 0}
+                  canTour={!tourStarting && mode === "demo"}
                   onTour={startTour}
                   onToggleHelp={() => setHelpOn(!helpOn)}
                   onClose={() => { setHowtoOpen(false); howtoBtn.current?.focus(); }}
                 />
               )}
             </div>
-            {mode === "demo" && <button className="btn ghost" onClick={resetDemo}>デモを最初からやり直す</button>}
+            {mode === "demo" && <button className="btn ghost" onClick={resetDemo} disabled={!!tourBeats}>デモを最初からやり直す</button>}
           </div>
 
           {error ? (
@@ -215,7 +237,7 @@ export default function App() {
                 </div>
                 {page === "requests" && <RequestsPage nowIso={home.now} version={version} onOpen={(id) => setSelected({ id })} />}
                 {page === "calendar" && <CalendarPage home={home} onOpen={(id) => setSelected({ id, focus: "slots" })} />}
-                {page === "report" && <ReportPage />}
+                {page === "report" && <ReportPage version={version} />}
                 {page === "settings" && <SettingsPage mode={mode} m365={m365} guideOpen={guideOpen} onToggleGuide={setGuideOpen} />}
               </div></div>
               {selected && (
@@ -240,25 +262,27 @@ export default function App() {
         {toast && <div className="toast" role="status">{toast}</div>}
 
         {showIntro && <IntroDialog onStart={startTour} onSkip={skipIntro} />}
-        {touring && tourSteps.length > 0 && (
-          <Tour
-            steps={tourSteps}
-            onEnd={() => endTour()}
-            onFinish={(action) => {
-              endTour(false);
-              if (action === "reply" && topCard) {
-                setPage("today");
-                setSelected({ id: topCard.request_id, focus: "draft" }); // 対象の返信案を開く
-                window.setTimeout(() => document.querySelector<HTMLElement>(".draft textarea")?.focus(), 500);
-              } else {
-                setSelected(null);
-                window.setTimeout(() => document.querySelector<HTMLElement>(".card-top")?.focus(), 50);
-              }
-            }}
-          />
-        )}
+        {tourStarting && <div className="toast" role="status">ツアーを準備しています…</div>}
+        {tourBeats && <StoryTour beats={tourBeats} speed={tourSpeed} resetData={resetTourData} onExit={exitTour} />}
       </div>
     </HelpContext.Provider>
+  );
+}
+
+/** 表示テーマの切り替え（ライト／ダーク）。現在の選択を文字・アイコン・押下状態で示す */
+function ThemeSwitch() {
+  const [theme, setTheme] = useState<Theme>(prefs.theme());
+  const choose = (t: Theme) => { prefs.setTheme(t); setTheme(t); };
+  return (
+    <div className="theme-switch" role="group" aria-label="表示テーマ">
+      <span className="theme-label">表示テーマ</span>
+      <button className={theme === "light" ? "on" : ""} aria-pressed={theme === "light"} onClick={() => choose("light")}>
+        <span aria-hidden="true">☀</span> ライト
+      </button>
+      <button className={theme === "dark" ? "on" : ""} aria-pressed={theme === "dark"} onClick={() => choose("dark")}>
+        <span aria-hidden="true">☾</span> ダーク
+      </button>
+    </div>
   );
 }
 
@@ -282,7 +306,7 @@ function HowtoMenu({ helpOn, canTour, onTour, onToggleHelp, onClose }: {
         if (e.key === "ArrowDown") { e.preventDefault(); list[(i + 1) % list.length]?.focus(); }
         if (e.key === "ArrowUp") { e.preventDefault(); list[(i - 1 + list.length) % list.length]?.focus(); }
       }}>
-      <button role="menuitem" className="menu-item" disabled={!canTour} onClick={onTour}>デモツアーを再生</button>
+      <button role="menuitem" className="menu-item" disabled={!canTour} onClick={onTour}>5分デモツアーを再生</button>
       <button role="menuitemcheckbox" aria-checked={helpOn} className="menu-item menu-check" onClick={onToggleHelp}>
         画面の説明を表示 <span className={`switch${helpOn ? " on" : ""}`} aria-hidden="true">{helpOn ? "ON" : "OFF"}</span>
       </button>
