@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, Card, CHANNEL, fmtDue, Home } from "../api";
 import CardItem from "../components/CardItem";
+import { HelpTip } from "../help";
 import { ChannelIcon, IconWarn } from "../icons";
 
 type Props = {
@@ -33,6 +34,7 @@ export default function Today({ home, selectedId, onSelect, onChanged, onIngest 
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
       if (t.closest("input, textarea, select, [contenteditable], [role=menu]")) return;
+      if (document.querySelector(".tour, .overlay")) return; // ツアーや確認ダイアログの表示中は、裏の一覧を動かさない
       const idx = flat.findIndex((c) => c.request_id === selectedId);
       const pick = (i: number) => {
         const c = flat[Math.max(0, Math.min(flat.length - 1, i))];
@@ -149,7 +151,10 @@ export default function Today({ home, selectedId, onSelect, onChanged, onIngest 
 
       {home.sections.filter((sec) => sec.items.length > 0).map((sec) => (
         <section className="section" key={sec.key} aria-label={sec.label}>
-          <h2 className="section-head">{sec.label}<span className="n">{sec.items.length}件</span></h2>
+          <h2 className="section-head">
+            {sec.label}<span className="n">{sec.items.length}件</span>
+            {sec.key === "now" && <HelpTip id="now" label="今すぐ対応" />}
+          </h2>
           <div className="cards">
             {sec.items.map((c, i) => (
               <CardItem

@@ -1,6 +1,7 @@
 // 「依頼」「予定表」「改善レポート」「接続設定」のページ
 import { useEffect, useState } from "react";
 import { api, fmtDue, fmtTime, Health, Home, RequestDetail, statusClass } from "../api";
+import { HelpTip } from "../help";
 
 export function RequestsPage({ nowIso, version, onOpen }: { nowIso: string; version: number; onOpen: (id: number) => void }) {
   const [rows, setRows] = useState<RequestDetail[] | null>(null);
@@ -57,7 +58,7 @@ export function CalendarPage({ home }: { home: Home }) {
 export function ReportPage() {
   return (
     <>
-      <div className="page-head"><h1>改善レポート</h1></div>
+      <div className="page-head"><h1>改善レポート<HelpTip id="report" label="改善レポート" /></h1></div>
       <div className="empty">
         <h2>計測データを準備中です</h2>
         <p>朝の段取り時間・確認の往復回数・下書きの利用状況は、操作の記録を集計して表示します（ステップ8で追加）。</p>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { api, Card, CalEvent, CHANNEL, fmtDue, fmtTime, History, RequestDetail as Detail, statusClass } from "../api";
 import { ChannelLabel, IconCheck, IconClose, IconLink, IconToday, IconWarn } from "../icons";
+import { HelpTip } from "../help";
 import DocumentPanel from "./DocumentPanel";
 import DraftPanel from "./DraftPanel";
 
@@ -104,7 +105,7 @@ export default function RequestDetail({ requestId, card, nowIso, events, freeSlo
         {card && (
           <section className="block">
             <div className="next-box">
-              <div className="label"><IconToday size={13} />次にやること</div>
+              <div className="label"><IconToday size={13} />次にやること<HelpTip id="next" label="次にやること" /></div>
               <div className="text">{card.next_action}</div>
               {card.capacity ? (
                 <>
@@ -128,7 +129,7 @@ export default function RequestDetail({ requestId, card, nowIso, events, freeSlo
         {/* ---- 関連候補（利用者が同一案件か判断する） ---- */}
         {pendingCands.length > 0 && (
           <section className="block" data-sec="candidate">
-            <h3>同じ依頼の候補<span className="badge warn"><IconWarn size={12} />判断待ち</span></h3>
+            <h3>同じ依頼の候補<span className="badge warn"><IconWarn size={12} />判断待ち</span><HelpTip id="candidate" label="同じ依頼の候補" /></h3>
             {pendingCands.map((c) => (
               <div key={c.id}>
                 <MessageView m={c.message} role="candidate" candidate marks={c.highlights} />
@@ -152,7 +153,7 @@ export default function RequestDetail({ requestId, card, nowIso, events, freeSlo
 
         {/* ---- 期限と予定表 ---- */}
         <section className="block" data-sec="slots">
-          <h3>期限と予定表</h3>
+          <h3>期限と予定表<HelpTip id="slots" label="期限と予定表" /></h3>
           {/* 確定期限・現在の希望期限・候補の連絡にある期限・登録済みの作業枠を、別々の行で示す */}
           <dl className="due-grid">
             <dt>確定期限</dt>

@@ -340,6 +340,40 @@ a.btn { text-decoration: none; }
 .table tr.clickable { cursor: pointer; }
 .table tr.clickable:hover td { background: var(--surface-hover); }
 .kbd { font-family: ui-monospace, Consolas, monospace; font-size: 11px; border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; color: var(--text-sub); }
+/* ---- 使い方：画面の説明（？） ---- */
+.help-wrap { position: relative; display: inline-flex; margin-left: 6px; vertical-align: middle; }
+.help-icon { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--cyan); background: var(--cyan-bg); color: var(--cyan); font-size: 11px; font-weight: 700; line-height: 1; cursor: pointer; display: grid; place-items: center; padding: 0; }
+.help-icon[aria-expanded="true"] { background: var(--cyan); color: var(--on-accent); }
+.help-pop { position: fixed; z-index: 25; width: 280px; max-width: calc(100vw - 24px); background: var(--surface-2); border: 1px solid var(--border-strong); border-left: 3px solid var(--cyan); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 13px; font-weight: 400; line-height: 1.6; letter-spacing: 0; text-transform: none; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); animation: fade-in 0.15s ease-out; }
+.nav-group { display: contents; }
+.howto-menu { min-width: 240px; }
+.menu-check { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.switch { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 0 8px; border: 1px solid var(--border-strong); color: var(--text-sub); }
+.switch.on { background: var(--cyan); border-color: var(--cyan); color: var(--on-accent); }
+
+/* ---- 使い方：初回の概要とツアー ---- */
+@keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.intro-overlay { animation: fade-in 0.2s ease-out; }
+.intro { position: relative; width: min(520px, 100%); background: var(--surface-2); border-top: 3px solid var(--accent); animation: fade-in 0.25s ease-out; }
+.intro h2 { font-size: 20px; margin: 4px 0 10px; }
+.intro p { color: var(--text-reason); margin: 0 0 10px; }
+.intro-tag { font-size: 12px; color: var(--accent); font-weight: 700; }
+.intro-close { position: absolute; top: 10px; right: 10px; font-size: 18px; }
+.tour { position: fixed; inset: 0; z-index: 30; }
+.tour-blocker { position: fixed; inset: 0; }
+.tour-spot { position: fixed; border: 2px solid var(--cyan); border-radius: 10px; box-shadow: 0 0 0 9999px rgba(8, 9, 14, 0.62), 0 0 0 6px rgba(103, 217, 236, 0.18); transition: top 0.2s ease, left 0.2s ease, width 0.2s ease, height 0.2s ease; pointer-events: none; }
+.tour-pop { position: fixed; width: 340px; max-width: calc(100vw - 24px); background: var(--surface-2); border: 1px solid var(--border-strong); border-top: 3px solid var(--cyan); border-radius: 10px; padding: 14px 16px 12px; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55); opacity: 0; }
+.tour-pop.shown { opacity: 1; animation: fade-in 0.2s ease-out; }
+.tour-pop h2 { font-size: 16px; margin: 2px 0 6px; }
+.tour-pop p { margin: 0; color: var(--text-reason); font-size: 13.5px; }
+.tour-count { font-size: 12px; color: var(--cyan); font-weight: 700; }
+.tour-buttons { display: flex; gap: 6px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
+/* OS で「動きを減らす」設定をしている人には、移動やアニメーションをしない */
+@media (prefers-reduced-motion: reduce) {
+  .intro, .intro-overlay, .tour-pop.shown, .help-pop { animation: none; }
+  .tour-spot { transition: none; }
+}
+
 /* 画面には出さず、読み上げソフトにだけ伝えるラベル */
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--surface-2); border: 1px solid var(--border); padding: 8px 16px; border-radius: 8px; font-size: 13px; z-index: 10; box-shadow: 0 6px 24px rgba(0,0,0,.4); }
