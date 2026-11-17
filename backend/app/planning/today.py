@@ -12,6 +12,7 @@ import json
 import re
 from datetime import datetime
 
+from app.documents import service as doc_service
 from app.drafts import service as draft_service
 from app.intake import rules
 from app.planning.slots import free_minutes_until, free_slots
@@ -225,6 +226,13 @@ def build_card(conn, req: dict, now: datetime, slots, events, last_checked: date
         else:
             label = f"{name}あり" + ("（保存済み）" if d["status"] == "saved" else "")
             prep.insert(0, {"label": label, "kind": "ok"})
+    doc = doc_service.get_document(conn, rid) if req["type_code"] == "document" else None
+    if doc:
+        if doc["needs_review"]:
+            prep.insert(1, {"label": "資料の更新確認が必要", "kind": "warn"})
+        else:
+            prep.insert(1, {"label": "資料下書きあり" if doc["content"]["complete"] else "資料下書きあり（要確認あり）",
+                            "kind": "ok" if doc["content"]["complete"] else "warn"})
 
     evidence = [{"message_id": m["id"], "channel": m["channel"], "sender_name": m["sender_name"],
                  "received_at": m["received_at"], "role": m["role"], "snippet": _snippet(m["body"])}
@@ -246,6 +254,7 @@ def build_card(conn, req: dict, now: datetime, slots, events, last_checked: date
         "due": {"requested": req["requested_due"], "committed": committed,
                 "proposed": proposed_due, "change_status": req["due_change_status"]},
         "effort_minutes": effort, "evidence": evidence, "capacity": capacity,
+        "has_document": doc is not None,
         "primary_action": primary, "secondary_actions": secondary,
     }
 

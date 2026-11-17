@@ -135,6 +135,33 @@ CREATE TABLE IF NOT EXISTS draft_events (
     note     TEXT
 );
 
+-- 依頼ごとに、利用者が参照を許可したファイル（許可していないファイルは読まない）
+CREATE TABLE IF NOT EXISTS file_permissions (
+    request_id INTEGER NOT NULL REFERENCES requests(id),
+    file_name  TEXT NOT NULL,
+    allowed_at TEXT NOT NULL,
+    PRIMARY KEY (request_id, file_name)
+);
+
+-- 会議資料のたたき台（PowerPoint の元になる内容）
+CREATE TABLE IF NOT EXISTS documents (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    request_id INTEGER NOT NULL UNIQUE REFERENCES requests(id),
+    title      TEXT NOT NULL,
+    content    TEXT NOT NULL,   -- スライドの内容と集計結果（JSON）
+    basis      TEXT NOT NULL,   -- 作成時の条件（JSON）。変わったら「更新内容の確認が必要」
+    version    INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS document_events (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    document_id INTEGER NOT NULL REFERENCES documents(id),
+    at          TEXT NOT NULL,
+    action      TEXT NOT NULL    -- generated / regenerated / downloaded
+);
+
 -- アプリの状態フラグ（デモの持ち越しを適用済みか など）
 CREATE TABLE IF NOT EXISTS app_meta (
     key   TEXT PRIMARY KEY,
@@ -170,7 +197,7 @@ CREATE TABLE IF NOT EXISTS ingest_runs (
 
 # 削除するときの順番（参照される側を後に消す）
 ALL_TABLES = [
-    "draft_events", "drafts", "request_history", "relation_candidates", "message_classes", "request_messages",
+    "document_events", "documents", "file_permissions", "draft_events", "drafts", "request_history", "relation_candidates", "message_classes", "request_messages",
     "request_fields", "requests", "request_types", "events", "messages", "ingest_runs", "app_meta",
 ]
 

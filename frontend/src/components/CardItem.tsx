@@ -31,6 +31,10 @@ export default function CardItem({ card, isTop, selected, nowIso, canUp, canDown
       <button className={`btn ${isTop ? "primary" : "subtle"}`} onClick={(e) => act(e, card.primary_action.target)}>
         {card.primary_action.label}
       </button>
+      {/* 資料の下書きが実際にあるときだけ、先頭カードに控えめな2つ目のボタンを出す */}
+      {isTop && card.has_document && (
+        <button className="btn subtle" onClick={(e) => act(e, "document")}>資料の下書きを見る</button>
+      )}
       <MoreMenu card={card} canUp={canUp} canDown={canDown} onAction={onAction} onMove={onMove} />
     </div>
   );

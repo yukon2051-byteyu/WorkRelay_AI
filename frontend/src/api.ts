@@ -24,6 +24,7 @@ export type Card = {
   effort_minutes: number | null;
   evidence: Evidence[];
   capacity: { until: string; free_minutes: number; need_minutes: number | null } | null;
+  has_document: boolean;
   primary_action: Action;
   secondary_actions: Action[];
 };
@@ -117,6 +118,32 @@ export type RequestDetail = {
   history: History[];
   work_slots: CalEvent[];
   drafts: Draft[];
+  document: DocumentDraft | null;
+  files: { name: string; allowed: boolean }[];
+};
+export type Slide = {
+  title: string;
+  bullets?: string[];
+  table?: { header: string[]; rows: string[][] };
+  chart?: { categories: string[]; series: { name: string; values: number[] }[] } | null;
+};
+export type DocumentDraft = {
+  id: number;
+  request_id: number;
+  title: string;
+  version: number;
+  needs_review: boolean;
+  changes: { label: string; old: string; new: string }[];
+  generator: string;
+  content: {
+    title: string;
+    label: string;
+    complete: boolean;
+    unconfirmed: string[];
+    footer: string;
+    source: { file: string; sheet: string; period: string; period_evidence: string | null; row_count: number; aggregated_at: string } | null;
+    slides: Slide[];
+  };
 };
 export type Draft = {
   id: number;
@@ -179,6 +206,10 @@ export const api = {
   editDraft: (id: number, body: string) => call<Draft>("PATCH", `/api/drafts/${id}`, { body }),
   draftAction: (id: number, action: "copy" | "save" | "sent" | "discard" | "apply-suggestion") =>
     call<Draft>("POST", `/api/drafts/${id}/${action}`),
+  setFilePermission: (requestId: number, fileName: string, allowed: boolean) =>
+    call("PUT", `/api/requests/${requestId}/files`, { file_name: fileName, allowed }),
+  createDocument: (requestId: number) => call<DocumentDraft>("POST", `/api/requests/${requestId}/document`),
+  documentUrl: (id: number) => `/api/documents/${id}/download`,
 };
 
 // ---- 表示用の小道具

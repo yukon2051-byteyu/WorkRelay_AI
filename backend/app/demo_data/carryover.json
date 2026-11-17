@@ -6,7 +6,8 @@
       "at": "2026-11-17T10:40:00+09:00",
       "committed_due": "2026-11-18T15:00:00+09:00",
       "effort_minutes": 60,
-      "work_event_external_id": "event-1330-work-sales"
+      "work_event_external_id": "event-1330-work-sales",
+      "allowed_files": ["2026年度_売上実績.xlsx"]
     },
     {
       "origin_external_id": "mail-y02",

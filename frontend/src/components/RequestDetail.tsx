@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { api, Card, CalEvent, CHANNEL, fmtDue, fmtTime, History, RequestDetail as Detail, statusClass } from "../api";
 import { ChannelLabel, IconCheck, IconClose, IconLink, IconToday, IconWarn } from "../icons";
+import DocumentPanel from "./DocumentPanel";
 import DraftPanel from "./DraftPanel";
 
 /** 原文はそのまま、指定した箇所だけ <mark> で軽く強調する */
@@ -94,6 +95,7 @@ export default function RequestDetail({ requestId, card, nowIso, events, freeSlo
           </button>
           <button className="btn ghost" onClick={() => jump("slots")}>期限と予定表</button>
           <button className="btn ghost" onClick={() => jump("draft")}>下書き</button>
+          {d.type_code === "document" && <button className="btn ghost" onClick={() => jump("document")}>資料</button>}
           <button className="btn ghost" onClick={() => jump("progress")}>進行</button>
         </nav>
       </header>
@@ -220,6 +222,14 @@ export default function RequestDetail({ requestId, card, nowIso, events, freeSlo
           <h3>用意した下書き{d.drafts.some((x) => x.needs_review) && <span className="badge warn"><IconWarn size={12} />更新確認</span>}</h3>
           <DraftPanel detail={d} onChanged={onChanged} />
         </section>
+
+        {/* ---- 会議資料（資料作成の依頼のみ） ---- */}
+        {d.type_code === "document" && (
+          <section className="block" data-sec="document">
+            <h3>会議資料のたたき台{d.document?.needs_review && <span className="badge warn"><IconWarn size={12} />更新確認</span>}</h3>
+            <DocumentPanel detail={d} onChanged={onChanged} />
+          </section>
+        )}
 
         {/* ---- 進行 ---- */}
         <section className="block" data-sec="progress">

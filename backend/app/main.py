@@ -4,11 +4,13 @@ import json
 import sqlite3
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
+from urllib.parse import quote
 from pydantic import BaseModel
 
 from app import config
 from app.db import ALL_TABLES, connect
+from app.documents import service as documents
 from app.drafts import service as drafts
 from app.intake import service as intake
 from app.pipeline import run_pipeline
@@ -126,6 +128,8 @@ def list_requests(conn=Depends(get_conn)) -> list[dict]:
 def get_request(request_id: int, conn=Depends(get_conn)) -> dict:
     detail = intake.get_request(conn, request_id)
     detail["drafts"] = drafts.list_drafts(conn, request_id)
+    detail["document"] = documents.get_document(conn, request_id)
+    detail["files"] = documents.files_view(conn, request_id) if detail["type_code"] == "document" else []
     return detail
 
 
@@ -197,6 +201,37 @@ def draft_action(draft_id: int, action: str, conn=Depends(get_conn)) -> dict:
     """copy / save（Outlookに下書き保存） / sent（送信したことを記録） / discard / apply-suggestion。
     いずれも画面で内容を確認した利用者の操作から呼ばれる。自動では呼ばない。"""
     return drafts.act(conn, draft_id, action)
+
+
+# ---------------------------------------------------------------- 会議資料
+
+class FilePermission(BaseModel):
+    file_name: str
+    allowed: bool
+
+
+@app.put("/api/requests/{request_id}/files")
+def set_file_permission(request_id: int, body: FilePermission, conn=Depends(get_conn)) -> dict:
+    """この依頼で参照してよいファイルを、利用者が許可する／取り消す。"""
+    documents.set_permission(conn, request_id, body.file_name, body.allowed)
+    return {"files": documents.files_view(conn, request_id)}
+
+
+@app.post("/api/requests/{request_id}/document")
+def create_document(request_id: int, conn=Depends(get_conn)) -> dict:
+    """会議資料のたたき台を作る／作り直す。"""
+    return documents.generate(conn, request_id)
+
+
+@app.get("/api/documents/{document_id}/download")
+def download_document(document_id: int, conn=Depends(get_conn)) -> Response:
+    name, data = documents.download(conn, document_id)
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        # 日本語のファイル名は RFC 5987 の形式で渡す
+        headers={"Content-Disposition": f"attachment; filename=\"deck.pptx\"; filename*=UTF-8''{quote(name)}"},
+    )
 
 
 # ---------------------------------------------------------------- 今日やること

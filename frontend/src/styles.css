@@ -50,7 +50,9 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 dl, dd { margin: 0; }
 
 /* ---- 全体の枠：左ナビ ｜ 中央 ｜ 右の詳細 ---- */
-.shell { display: grid; grid-template-columns: 216px 1fr; grid-template-rows: minmax(0, 1fr); height: 100vh; overflow: hidden; }
+/* overflow: clip … 外枠自体はスクロールさせない（hidden だと、欄へ移動するスクロールで画面全体がずれる） */
+.shell { display: grid; grid-template-columns: 216px 1fr; grid-template-rows: minmax(0, 1fr); height: 100vh; overflow: clip; }
+.main, .workspace { overflow: clip; }
 .nav { background: var(--nav); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 16px 10px; gap: 4px; min-width: 0; }
 .nav-brand { font-weight: 700; font-size: 15px; padding: 4px 10px 16px; letter-spacing: 0.02em; }
 .nav-brand span { color: var(--accent); }
@@ -81,7 +83,8 @@ dl, dd { margin: 0; }
 
 .workspace { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; }
 .workspace.with-detail { grid-template-columns: minmax(400px, 1fr) minmax(360px, 440px); }
-.pane { overflow-y: auto; min-height: 0; }
+/* position: relative … 中の絶対配置（読み上げ専用ラベルなど）の基準をペインにして、ページ全体を縦に伸ばさない */
+.pane { overflow-y: auto; min-height: 0; position: relative; }
 .list-pane { padding: 18px 24px 40px; }
 /* 本文と操作ボタンが画面の両端に離れすぎないよう、作業領域に最大幅を設ける */
 .list-inner { max-width: 980px; container-type: inline-size; }
@@ -151,7 +154,7 @@ dl, dd { margin: 0; }
 .card-top .card-action { font-size: 18px; font-weight: 700; margin-top: 2px; }
 .card-reason { color: var(--text-reason); font-size: 13.5px; margin: 4px 0 0; line-height: 1.65; }
 .card-side { display: flex; flex-direction: column; justify-content: center; gap: 10px; padding-left: 18px; border-left: 1px solid var(--border); }
-.card-side .card-buttons { justify-content: flex-start; }
+.card-side .card-buttons { justify-content: flex-start; flex-wrap: wrap; row-gap: 6px; }
 .first-label { display: inline-block; font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: 0.04em; }
 
 /* 期限 */
@@ -281,6 +284,24 @@ mark.hl { background: var(--warn-bg); color: var(--text); border-bottom: 1px sol
 .dialog { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; padding: 18px 20px; width: min(560px, 100%); max-height: 90vh; overflow: auto; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5); }
 .dialog h2 { font-size: 16px; margin-bottom: 4px; }
 .dialog .muted { font-size: 13px; margin: 0 0 6px; }
+
+/* ---- 会議資料 ---- */
+.files { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.file-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+.doc { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; background: var(--bg); }
+.slides { display: grid; gap: 8px; margin-top: 10px; }
+.slide { margin: 0; background: #f6f7fb; color: #1f2333; border-radius: 6px; padding: 10px 12px 8px; border-top: 4px solid #4b50c8; }
+.slide figcaption { font-weight: 700; font-size: 13px; }
+.slide-body ul { margin: 6px 0; padding-left: 16px; font-size: 12px; }
+.slide-body .faint { color: #5b6070; }
+.slide-table { border-collapse: collapse; font-size: 11px; margin: 6px 0; width: 100%; }
+.slide-table th { background: #4f81bd; color: #fff; text-align: left; padding: 2px 4px; }
+.slide-table td { border-bottom: 1px solid #d5d8e2; padding: 2px 4px; font-variant-numeric: tabular-nums; }
+.slide-foot { font-size: 10px; color: #6b7080; border-top: 1px solid #d5d8e2; padding-top: 4px; margin-top: 4px; }
+.slide .warn-text { color: #a8690e; font-weight: 600; }
+.warn-text { color: var(--warn); font-weight: 600; }
+.evidence-grid { margin-top: 10px; }
+a.btn { text-decoration: none; }
 
 /* ---- 進行（受信 → AIが準備 → 人が確認 → 対応済み） ---- */
 .stages { list-style: none; margin: 0; padding: 0; }

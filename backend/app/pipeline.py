@@ -9,6 +9,7 @@ import json
 import sqlite3
 
 from app import config
+from app.documents import service as documents
 from app.drafts.service import prepare_drafts
 from app.ingest.service import ingest
 from app.intake.service import apply_carryover, process_messages
@@ -21,7 +22,15 @@ def run_pipeline(conn: sqlite3.Connection, source) -> dict:
     if source.name == "demo" and not _flag(conn, "carryover_applied"):
         before = process_messages(conn, source.name, until=config.DEMO_LAST_CHECKED.isoformat())
         with open(config.DEMO_DATA_DIR / "carryover.json", encoding="utf-8") as f:
-            apply_carryover(conn, json.load(f)["decisions"], source.name)
+            decisions = json.load(f)["decisions"]
+        apply_carryover(conn, decisions, source.name)
+        # 前日に利用者が参照を許可したファイル（売上Excel）
+        for d in decisions:
+            for name in d.get("allowed_files", []):
+                rid = conn.execute(
+                    "SELECT r.id FROM requests r JOIN messages m ON m.id = r.origin_message_id "
+                    "WHERE m.source = ? AND m.external_id = ?", (source.name, d["origin_external_id"])).fetchone()["id"]
+                documents.set_permission(conn, rid, name, True, at=d["at"])
         _set_flag(conn, "carryover_applied")
         processed = _merge(processed, before)
 
@@ -29,6 +38,8 @@ def run_pipeline(conn: sqlite3.Connection, source) -> dict:
     result["processed"] = processed
     # 朝の準備：必要な返信・確認文の下書きを用意する（作るだけ。保存・送信はしない）
     result["drafts_created"] = prepare_drafts(conn, source.name)
+    # 参照を許可した売上データがある資料依頼には、会議資料のたたき台を用意する
+    result["documents_created"] = documents.prepare_documents(conn, source.name)
     return result
 
 
