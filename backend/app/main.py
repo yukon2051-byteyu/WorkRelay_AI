@@ -1,15 +1,30 @@
 """WorkRelay AI バックエンドの入口（API の一覧）。"""
 from collections.abc import Iterator
+import json
 import sqlite3
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from app import config
-from app.db import connect
-from app.ingest.service import ingest
+from app.db import ALL_TABLES, connect
+from app.intake import service as intake
+from app.pipeline import run_pipeline
 from app.sources.demo import DemoSource
 
 app = FastAPI(title="WorkRelay AI")
+
+
+# 業務処理の例外を、画面で扱いやすい HTTP の応答に変換する
+@app.exception_handler(LookupError)
+def _not_found(_: Request, exc: LookupError):
+    return JSONResponse(status_code=404, content={"detail": str(exc)})
+
+
+@app.exception_handler(ValueError)
+def _bad_request(_: Request, exc: ValueError):
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
 def get_conn() -> Iterator[sqlite3.Connection]:
@@ -29,6 +44,8 @@ def get_source():
     raise HTTPException(status_code=503, detail="Microsoft 365 は未接続です")
 
 
+# ---------------------------------------------------------------- 基本
+
 @app.get("/api/health")
 def health() -> dict:
     """死活確認用。画面からここを呼び、サーバーとつながっているかを確かめる。"""
@@ -37,28 +54,8 @@ def health() -> dict:
 
 @app.post("/api/ingest")
 def run_ingest(conn=Depends(get_conn), source=Depends(get_source)) -> dict:
-    """取り込み元からメール・Teams・予定を取り込む。何度実行しても重複しない。"""
-    return ingest(conn, source)
-
-
-@app.get("/api/messages")
-def list_messages(new_only: bool = False, conn=Depends(get_conn)) -> list[dict]:
-    """取り込んだメッセージの一覧。new_only=true なら前回確認以降の受信だけ。"""
-    sql = "SELECT * FROM messages WHERE source = ?"
-    params: list = [config.DATA_MODE]
-    if new_only:
-        sql += " AND direction = 'received' AND received_at > ?"
-        params.append(config.DEMO_LAST_CHECKED.isoformat())
-    sql += " ORDER BY received_at"
-    return [dict(r) for r in conn.execute(sql, params)]
-
-
-@app.get("/api/events")
-def list_events(conn=Depends(get_conn)) -> list[dict]:
-    rows = conn.execute(
-        "SELECT * FROM events WHERE source = ? ORDER BY start_at", [config.DATA_MODE]
-    )
-    return [dict(r) for r in rows]
+    """取り込み → 依頼の処理。何度実行しても依頼や回答は重複しない。"""
+    return run_pipeline(conn, source)
 
 
 @app.post("/api/demo/reset")
@@ -66,7 +63,87 @@ def reset_demo(conn=Depends(get_conn)) -> dict:
     """デモを最初の状態に戻す（全データ削除）。デモモードでのみ使える。"""
     if config.DATA_MODE != "demo":
         raise HTTPException(status_code=403, detail="デモモード以外では使えません")
-    for table in ("messages", "events", "ingest_runs"):
+    for table in ALL_TABLES:
         conn.execute(f"DELETE FROM {table}")
     conn.commit()
     return {"status": "reset"}
+
+
+# ---------------------------------------------------------------- 取り込んだデータ
+
+@app.get("/api/messages")
+def list_messages(new_only: bool = False, conn=Depends(get_conn)) -> list[dict]:
+    """メッセージ一覧（分類結果つき）。new_only=true なら前回確認以降の受信だけ。"""
+    sql = ("SELECT m.*, c.category, c.reason, c.request_id FROM messages m "
+           "LEFT JOIN message_classes c ON c.message_id = m.id WHERE m.source = ?")
+    params: list = [config.DATA_MODE]
+    if new_only:
+        sql += " AND m.direction = 'received' AND m.received_at > ?"
+        params.append(config.DEMO_LAST_CHECKED.isoformat())
+    sql += " ORDER BY m.received_at"
+    return [dict(r) for r in conn.execute(sql, params)]
+
+
+@app.get("/api/events")
+def list_events(conn=Depends(get_conn)) -> list[dict]:
+    rows = conn.execute("SELECT * FROM events WHERE source = ? ORDER BY start_at", [config.DATA_MODE])
+    return [dict(r) for r in rows]
+
+
+# ---------------------------------------------------------------- 依頼
+
+class RequestUpdate(BaseModel):
+    status: str | None = None
+    effort_minutes: int | None = None
+    fields: dict[str, str] | None = None
+
+
+class DueDecision(BaseModel):
+    decision: str              # accept（希望期限を受ける） / keep（確定期限のまま） / custom
+    committed_due: str | None = None
+
+
+class RequiredFields(BaseModel):
+    required_fields: list[str]
+
+
+@app.get("/api/requests")
+def list_requests(conn=Depends(get_conn)) -> list[dict]:
+    return intake.list_requests(conn, config.DATA_MODE)
+
+
+@app.get("/api/requests/{request_id}")
+def get_request(request_id: int, conn=Depends(get_conn)) -> dict:
+    return intake.get_request(conn, request_id)
+
+
+@app.patch("/api/requests/{request_id}")
+def update_request(request_id: int, body: RequestUpdate, conn=Depends(get_conn)) -> dict:
+    return intake.update_request(conn, request_id, body.model_dump(exclude_unset=True))
+
+
+@app.post("/api/requests/{request_id}/due-decision")
+def decide_due(request_id: int, body: DueDecision, conn=Depends(get_conn)) -> dict:
+    return intake.decide_due_change(conn, request_id, body.decision, body.committed_due)
+
+
+@app.post("/api/candidates/{candidate_id}/accept")
+def accept_candidate(candidate_id: int, conn=Depends(get_conn)) -> dict:
+    return intake.decide_candidate(conn, candidate_id, accept=True)
+
+
+@app.post("/api/candidates/{candidate_id}/reject")
+def reject_candidate(candidate_id: int, conn=Depends(get_conn)) -> dict:
+    return intake.decide_candidate(conn, candidate_id, accept=False)
+
+
+@app.get("/api/request-types")
+def list_request_types(conn=Depends(get_conn)) -> list[dict]:
+    intake.ensure_request_types(conn)
+    rows = conn.execute("SELECT * FROM request_types ORDER BY code").fetchall()
+    return [{**dict(r), "required_fields": json.loads(r["required_fields"])} for r in rows]
+
+
+@app.put("/api/request-types/{code}")
+def update_request_type(code: str, body: RequiredFields, conn=Depends(get_conn)) -> dict:
+    return intake.set_required_fields(conn, code, body.required_fields)

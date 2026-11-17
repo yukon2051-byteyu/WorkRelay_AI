@@ -7,7 +7,7 @@
       "chatType": "oneOnOne",
       "createdDateTime": "2026-11-17T21:40:00+09:00",
       "from": {"user": {"displayName": "佐藤 健（営業部）", "email": "sato.ken@example.com"}},
-      "body": {"contentType": "html", "content": "<p>青木さん、夜分にすみません！</p><p>昨日メールでお願いした売上資料の件、営業会議が前倒しになったので、<b>今日11時までに</b>欲しいです。難しければ相談させてください🙏</p>"}
+      "body": {"contentType": "html", "content": "<p>青木さん、夜分にすみません！</p><p>昨日メールでお願いした売上資料の件、営業会議が前倒しになったので、<b>明日（18日）の11時までに</b>欲しいです。難しければ相談させてください🙏</p>"}
     },
     {
       "id": "teams-n02",

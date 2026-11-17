@@ -1,0 +1,24 @@
+{
+  "_comment": "架空データ。前日（11/17）までに、利用者がアプリ上で行った判断。持ち越し依頼3件の『確定期限』『作業時間』『作業枠』を再現する。",
+  "decisions": [
+    {
+      "origin_external_id": "mail-y01",
+      "at": "2026-11-17T10:40:00+09:00",
+      "committed_due": "2026-11-18T15:00:00+09:00",
+      "effort_minutes": 60,
+      "work_event_external_id": "event-1330-work-sales"
+    },
+    {
+      "origin_external_id": "mail-y02",
+      "at": "2026-11-17T13:05:00+09:00",
+      "committed_due": "2026-11-20T18:00:00+09:00",
+      "effort_minutes": 45
+    },
+    {
+      "origin_external_id": "mail-y03",
+      "at": "2026-11-17T15:20:00+09:00",
+      "committed_due": "2026-11-19T17:00:00+09:00",
+      "effort_minutes": 30
+    }
+  ]
+}
