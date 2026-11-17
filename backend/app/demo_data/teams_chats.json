@@ -1,0 +1,37 @@
+{
+  "_comment": "架空データ。Microsoft Graph の /chats/{id}/messages の形式に近づけている。本文は HTML。",
+  "value": [
+    {
+      "id": "teams-n01",
+      "chatId": "chat-1on1-sato",
+      "chatType": "oneOnOne",
+      "createdDateTime": "2026-11-17T21:40:00+09:00",
+      "from": {"user": {"displayName": "佐藤 健（営業部）", "email": "sato.ken@example.com"}},
+      "body": {"contentType": "html", "content": "<p>青木さん、夜分にすみません！</p><p>昨日メールでお願いした売上資料の件、営業会議が前倒しになったので、<b>今日11時までに</b>欲しいです。難しければ相談させてください🙏</p>"}
+    },
+    {
+      "id": "teams-n02",
+      "chatId": "chat-group-johosys",
+      "chatType": "group",
+      "createdDateTime": "2026-11-18T08:10:00+09:00",
+      "from": {"user": {"displayName": "山本 淳（情報システム部）", "email": "yamamoto.jun@example.com"}},
+      "body": {"contentType": "html", "content": "<p>おはようございます。今日の朝会のアジェンダは共有フォルダに置いておきました。</p>"}
+    },
+    {
+      "id": "teams-n03",
+      "chatId": "chat-1on1-nakamura",
+      "chatType": "oneOnOne",
+      "createdDateTime": "2026-11-18T08:30:00+09:00",
+      "from": {"user": {"displayName": "中村 翔（開発部）", "email": "nakamura.sho@example.com"}},
+      "body": {"contentType": "html", "content": "<p>さっきメールしたサーバー利用料の件、部門別ではなく<b>サービス別</b>で見たいです！</p>"}
+    },
+    {
+      "id": "teams-n04",
+      "chatId": "chat-group-johosys",
+      "chatType": "group",
+      "createdDateTime": "2026-11-18T08:45:00+09:00",
+      "from": {"user": {"displayName": "山本 淳（情報システム部）", "email": "yamamoto.jun@example.com"}},
+      "body": {"contentType": "html", "content": "<p>今日のランチ、新しいカレー屋どうですか？</p>"}
+    }
+  ]
+}

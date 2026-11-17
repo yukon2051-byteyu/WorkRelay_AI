@@ -1,0 +1,40 @@
+{
+  "_comment": "架空データ。Microsoft Graph の /me/calendarView の形式に近づけている。categories に 'WorkRelay作業枠' があるものは作業枠。",
+  "value": [
+    {
+      "id": "event-0930-asakai",
+      "subject": "チーム朝会",
+      "start": {"dateTime": "2026-11-18T09:30:00", "timeZone": "Tokyo Standard Time"},
+      "end": {"dateTime": "2026-11-18T10:15:00", "timeZone": "Tokyo Standard Time"},
+      "categories": []
+    },
+    {
+      "id": "event-1015-project",
+      "subject": "システム更改プロジェクト定例",
+      "start": {"dateTime": "2026-11-18T10:15:00", "timeZone": "Tokyo Standard Time"},
+      "end": {"dateTime": "2026-11-18T11:00:00", "timeZone": "Tokyo Standard Time"},
+      "categories": []
+    },
+    {
+      "id": "event-1300-1on1",
+      "subject": "1on1（木村部長）",
+      "start": {"dateTime": "2026-11-18T13:00:00", "timeZone": "Tokyo Standard Time"},
+      "end": {"dateTime": "2026-11-18T13:30:00", "timeZone": "Tokyo Standard Time"},
+      "categories": []
+    },
+    {
+      "id": "event-1330-work-sales",
+      "subject": "【作業】売上資料作成（営業会議用）",
+      "start": {"dateTime": "2026-11-18T13:30:00", "timeZone": "Tokyo Standard Time"},
+      "end": {"dateTime": "2026-11-18T14:30:00", "timeZone": "Tokyo Standard Time"},
+      "categories": ["WorkRelay作業枠"]
+    },
+    {
+      "id": "event-1600-study",
+      "subject": "部内勉強会",
+      "start": {"dateTime": "2026-11-18T16:00:00", "timeZone": "Tokyo Standard Time"},
+      "end": {"dateTime": "2026-11-18T17:00:00", "timeZone": "Tokyo Standard Time"},
+      "categories": []
+    }
+  ]
+}
