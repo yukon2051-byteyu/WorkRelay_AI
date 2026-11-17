@@ -195,7 +195,8 @@ def build_card(conn, req: dict, now: datetime, slots, events, last_checked: date
         elif work_slots:
             s = work_slots[0]
             next_action = f"{req['title']}を仕上げる"
-            why.append(f"作業枠 {s['start_at'][11:16]}–{s['end_at'][11:16]} 登録済み")
+            # 一覧には理由を1行しか出さないので、次の行動に直結する作業枠の情報を先頭にする
+            why.insert(0, f"作業枠 {s['start_at'][11:16]}–{s['end_at'][11:16]} 登録済み")
             primary = {"label": "作業枠を見る", "target": "slots"}
         else:
             next_action = f"{req['title']}の作業枠を確保する"

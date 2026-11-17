@@ -14,6 +14,7 @@ from app import config
 from app.drafts import templates as t
 from app.intake import rules
 from app.intake.service import add_history, _link, _set_status
+from app.planning import schedule
 from app.planning.slots import free_minutes_until, free_slots
 
 OPEN_STATUSES = ("needs_info", "waiting_reply", "ready", "in_progress")
@@ -53,7 +54,7 @@ def _context(conn: sqlite3.Connection, request_id: int, now: datetime) -> dict:
     return {
         "req": req, "fields": fields, "origin": origin, "now": now,
         "missing": [n for n, f in fields.items() if f["state"] == "missing" and n not in candidate_fills],
-        "wish": wish, "wish_channel": wish_channel, "slots": free_slots(events, now),
+        "wish": wish, "wish_channel": wish_channel, "slots": free_slots(events, now), "events": events,
     }
 
 
@@ -76,6 +77,8 @@ def basis_for(kind: str, ctx: dict) -> dict:
         return {"committed_due": req["committed_due"], "wish_due": ctx["wish"], "effort": req["effort_minutes"]}
     if kind == "confirm":
         return {"missing": ctx["missing"]}
+    if kind == "schedule_consult":
+        return {"committed_due": req["committed_due"], "effort": req["effort_minutes"]}
     return {}
 
 
@@ -97,6 +100,14 @@ def build(kind: str, ctx: dict) -> dict:
         body = t.answer(to, me, req["title"])
     elif kind == "completion":
         body = t.completion(to, me, req["title"])
+    elif kind == "schedule_consult":
+        due = req["committed_due"] or req["requested_due"]
+        if not (due and req["effort_minutes"]):
+            raise ValueError("期限と作業時間が分からないため、相談の返信案を作れません")
+        events = [dict(e) for e in ctx["events"]]
+        p = schedule.plan(events, now, req["effort_minutes"], due)
+        body = t.schedule_consult(to, me, req["title"], due, p["free_before_deadline"] or 0,
+                                  req["effort_minutes"], p["earliest_finish"], now)
     else:
         raise ValueError(f"不明な下書きの種類です: {kind}")
     return {"channel": channel, "to_name": req["requester_name"], "to_email": req["requester_email"],

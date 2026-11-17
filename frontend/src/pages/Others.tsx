@@ -1,6 +1,6 @@
 // 「依頼」「予定表」「改善レポート」「接続設定」のページ
 import { useEffect, useState } from "react";
-import { api, fmtDue, fmtTime, Health, Home, RequestDetail, statusClass } from "../api";
+import { api, CalEvent, fmtDue, fmtTime, Health, Home, RequestDetail, statusClass } from "../api";
 import { HelpTip } from "../help";
 
 export function RequestsPage({ nowIso, version, onOpen }: { nowIso: string; version: number; onOpen: (id: number) => void }) {
@@ -35,22 +35,53 @@ export function RequestsPage({ nowIso, version, onOpen }: { nowIso: string; vers
   );
 }
 
-export function CalendarPage({ home }: { home: Home }) {
+export function CalendarPage({ home, onOpen }: { home: Home; onOpen: (id: number) => void }) {
+  const [events, setEvents] = useState<CalEvent[]>(home.events);
+  useEffect(() => { api.events().then(setEvents).catch(() => {}); }, [home]);
+  const cards = home.sections.flatMap((s) => s.items);
+  const titleOf = (id: number | null) => cards.find((c) => c.request_id === id)?.title ?? "依頼";
   const rows = [
     ...home.events.map((e) => ({ start: e.start_at, end: e.end_at, label: e.title, cls: e.kind === "work" ? "work" : "" })),
     ...home.free_slots.map((s) => ({ start: s.start, end: s.end, label: `空き ${s.minutes}分`, cls: "free" })),
   ].sort((a, b) => a.start.localeCompare(b.start));
+  const work = events.filter((e) => e.kind === "work" && e.request_id);
+  // 着手できるのに、まだ作業枠を登録していない依頼
+  const unscheduled = cards.filter((c) => c.primary_action.target === "slots" && !work.some((e) => e.request_id === c.request_id));
   return (
     <>
       <div className="page-head"><h1>予定表</h1><span className="sub">{fmtDue(home.now)} の予定（デモ内の予定表）</span></div>
-      <div className="timeline" style={{ maxWidth: 640 }}>
-        {rows.map((r, i) => (
-          <div key={i} className={`tl-row ${r.cls}`}>
-            <span className="tl-time">{fmtTime(r.start)}–{fmtTime(r.end)}</span><span>{r.label}</span>
+      <div className="cal-grid">
+        <section>
+          <h2 className="section-head">今日の予定と空き時間</h2>
+          <div className="timeline">
+            {rows.map((r, i) => (
+              <div key={i} className={`tl-row ${r.cls}`}>
+                <span className="tl-time">{fmtTime(r.start)}–{fmtTime(r.end)}</span><span>{r.label}</span>
+              </div>
+            ))}
           </div>
-        ))}
+          <p className="faint">勤務時間 9:00–18:00、昼休み 12:00–13:00 を除いて空き時間を計算しています。</p>
+        </section>
+        <section>
+          <h2 className="section-head">作業枠がまだない依頼<span className="n">{unscheduled.length}件</span></h2>
+          {unscheduled.length === 0 ? <p className="muted">ありません。</p> : unscheduled.map((c) => (
+            <div className="slot-row" key={c.request_id}>
+              <span>{c.title}<span className="faint">　{c.effort_minutes ? `所要${c.effort_minutes}分` : "作業時間は未見積もり"}・{fmtDue(c.due.committed ?? c.due.requested, home.now)}</span></span>
+              <span style={{ flex: 1 }} />
+              <button className="btn" onClick={() => onOpen(c.request_id)}>空き枠を確認</button>
+            </div>
+          ))}
+          <h2 className="section-head" style={{ marginTop: 18 }}>登録した作業枠<span className="n">{work.length}件</span></h2>
+          {work.map((e) => (
+            <div className="slot-row" key={e.id}>
+              <span className="slot-time">{fmtDue(e.start_at, home.now)}–{fmtTime(e.end_at)}</span>
+              <span>{titleOf(e.request_id)}</span>
+              <span style={{ flex: 1 }} />
+              <button className="btn ghost" onClick={() => onOpen(e.request_id!)}>依頼を開く</button>
+            </div>
+          ))}
+        </section>
       </div>
-      <p className="faint">勤務時間 9:00–18:00、昼休み 12:00–13:00 を除いて空き時間を計算しています。</p>
     </>
   );
 }

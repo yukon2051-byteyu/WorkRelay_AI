@@ -285,6 +285,20 @@ mark.hl { background: var(--warn-bg); color: var(--text); border-bottom: 1px sol
 .dialog h2 { font-size: 16px; margin-bottom: 4px; }
 .dialog .muted { font-size: 13px; margin: 0 0 6px; }
 
+/* ---- 作業枠 ---- */
+.planner { margin-top: 10px; }
+.slot-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 8px; border-radius: 6px; font-size: 13px; }
+.slot-row + .slot-row { border-top: 1px solid var(--border); }
+.slot-time { font-variant-numeric: tabular-nums; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+.registered-row { background: var(--cyan-bg); box-shadow: inset 3px 0 0 var(--cyan); }
+.registered-row .slot-time { color: var(--cyan); }
+.options { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.option { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.num { font-variant-numeric: tabular-nums; }
+.input-num { width: 90px; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: 6px; padding: 4px 8px; font: inherit; }
+.cal-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+@container (max-width: 760px) { .cal-grid { grid-template-columns: 1fr; } }
+
 /* ---- 会議資料 ---- */
 .files { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
 .file-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }

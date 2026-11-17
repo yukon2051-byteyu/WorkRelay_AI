@@ -214,7 +214,7 @@ export default function App() {
                   <Today home={home} selectedId={selected?.id ?? null} onSelect={(id, focus) => setSelected(id == null ? null : { id, focus })} onChanged={changed} onIngest={ingest} />
                 </div>
                 {page === "requests" && <RequestsPage nowIso={home.now} version={version} onOpen={(id) => setSelected({ id })} />}
-                {page === "calendar" && <CalendarPage home={home} />}
+                {page === "calendar" && <CalendarPage home={home} onOpen={(id) => setSelected({ id, focus: "slots" })} />}
                 {page === "report" && <ReportPage />}
                 {page === "settings" && <SettingsPage mode={mode} m365={m365} guideOpen={guideOpen} onToggleGuide={setGuideOpen} />}
               </div></div>

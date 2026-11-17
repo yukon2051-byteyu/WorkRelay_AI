@@ -120,6 +120,18 @@ export type RequestDetail = {
   drafts: Draft[];
   document: DocumentDraft | null;
   files: { name: string; allowed: boolean }[];
+  slot_plan: SlotPlan;
+};
+export type SlotPlan = {
+  needs_effort: boolean;
+  effort?: number;
+  deadline?: string | null;
+  deadline_label?: string | null;
+  candidates: { start: string; end: string; minutes: number; before_deadline: boolean }[];
+  enough: boolean | null;
+  free_before_deadline: number | null;
+  earliest_finish?: string | null;
+  options: { kind: "quick" | "consult"; label: string; description: string }[];
 };
 export type Slide = {
   title: string;
@@ -148,7 +160,7 @@ export type DocumentDraft = {
 export type Draft = {
   id: number;
   request_id: number;
-  kind: "due_adjust" | "confirm" | "answer" | "completion";
+  kind: "due_adjust" | "confirm" | "answer" | "completion" | "schedule_consult";
   kind_label: string;
   channel: "outlook" | "teams";
   to_name: string;
@@ -210,6 +222,9 @@ export const api = {
     call("PUT", `/api/requests/${requestId}/files`, { file_name: fileName, allowed }),
   createDocument: (requestId: number) => call<DocumentDraft>("POST", `/api/requests/${requestId}/document`),
   documentUrl: (id: number) => `/api/documents/${id}/download`,
+  createSlot: (requestId: number, start: string, end: string) =>
+    call<CalEvent>("POST", `/api/requests/${requestId}/work-slots`, { start, end }),
+  deleteSlot: (eventId: number) => call("DELETE", `/api/work-slots/${eventId}`),
 };
 
 // ---- 表示用の小道具

@@ -14,7 +14,7 @@ from app.documents import service as documents
 from app.drafts import service as drafts
 from app.intake import service as intake
 from app.pipeline import run_pipeline
-from app.planning import today
+from app.planning import today, work_slots
 from app.sources.demo import DemoSource
 
 app = FastAPI(title="WorkRelay AI")
@@ -130,6 +130,7 @@ def get_request(request_id: int, conn=Depends(get_conn)) -> dict:
     detail["drafts"] = drafts.list_drafts(conn, request_id)
     detail["document"] = documents.get_document(conn, request_id)
     detail["files"] = documents.files_view(conn, request_id) if detail["type_code"] == "document" else []
+    detail["slot_plan"] = work_slots.slot_plan(conn, request_id)
     return detail
 
 
@@ -232,6 +233,27 @@ def download_document(document_id: int, conn=Depends(get_conn)) -> Response:
         # 日本語のファイル名は RFC 5987 の形式で渡す
         headers={"Content-Disposition": f"attachment; filename=\"deck.pptx\"; filename*=UTF-8''{quote(name)}"},
     )
+
+
+# ---------------------------------------------------------------- 作業枠（予定表への登録）
+
+class SlotCreate(BaseModel):
+    start: str
+    end: str
+
+
+@app.post("/api/requests/{request_id}/work-slots")
+def create_work_slot(request_id: int, body: SlotCreate, conn=Depends(get_conn)) -> dict:
+    """利用者が確認した枠を、デモ内の予定表に登録する（自動では呼ばない）。"""
+    event = work_slots.register(conn, request_id, body.start, body.end)
+    drafts.prepare_drafts(conn, config.DATA_MODE)
+    return event
+
+
+@app.delete("/api/work-slots/{event_id}")
+def delete_work_slot(event_id: int, conn=Depends(get_conn)) -> dict:
+    work_slots.unregister(conn, event_id)
+    return {"status": "deleted"}
 
 
 # ---------------------------------------------------------------- 今日やること

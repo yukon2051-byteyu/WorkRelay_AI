@@ -5,6 +5,7 @@ import { ChannelLabel, IconCheck, IconClose, IconLink, IconToday, IconWarn } fro
 import { HelpTip } from "../help";
 import DocumentPanel from "./DocumentPanel";
 import DraftPanel from "./DraftPanel";
+import SlotPlanner from "./SlotPlanner";
 
 /** 原文はそのまま、指定した箇所だけ <mark> で軽く強調する */
 function highlight(text: string, phrases: string[]): ReactNode[] {
@@ -210,6 +211,8 @@ export default function RequestDetail({ requestId, card, nowIso, events, freeSlo
               <div>候補の連絡を「同じ依頼」とつなぐと、希望期限の変更として記録されます。確定期限は、その後のあなたの判断まで変わりません。</div>
             </div>
           )}
+
+          <SlotPlanner detail={d} nowIso={nowIso} onChanged={onChanged} onJump={jump} />
 
           <div style={{ marginTop: 12 }}>
             <div className="faint" style={{ marginBottom: 4 }}>今日の予定（{d.work_slots.length ? "この依頼の作業枠を強調" : "空き時間は点線"}）</div>

@@ -12,6 +12,7 @@ KIND_LABELS = {
     "confirm": "不足情報の確認",
     "answer": "問い合わせへの回答",
     "completion": "完了連絡",
+    "schedule_consult": "期限の相談（作業時間の不足）",
 }
 
 # 確認文で、各項目を何と聞くか
@@ -80,6 +81,21 @@ def answer(to: str, me: str, title: str) -> str:
         f"{title}について、手順は以下のとおりです。\n\n"
         f"1. {PLACEHOLDER}：手順1】\n2. {PLACEHOLDER}：手順2】\n3. {PLACEHOLDER}：手順3】\n\n"
         f"ご不明な点があれば、お気軽にご連絡ください。\n\n{me}"
+    )
+
+
+def schedule_consult(to: str, me: str, title: str, due: str, free_minutes: int, effort: int,
+                     finish: str | None, now: datetime) -> str:
+    """作業時間が期限までに足りないときの相談。速報版か、期限の変更かを選んでもらう。"""
+    later = fmt(finish, now) if finish else f"{PLACEHOLDER}：仕上げられる日時】"
+    return (
+        f"{to}さん\n\n{me}です。\n"
+        f"「{title}」について、{fmt(due, now)}までに確保できる作業時間が{free_minutes}分で、"
+        f"必要な{effort}分に足りない見込みです。\n\n"
+        f"次のどちらかでご相談させてください。\n"
+        f"・{fmt(due, now)}までに速報版（主要な点のみ）をお送りし、確定版は{later}までにお送りする\n"
+        f"・提出を{later}に変更する\n\n"
+        f"ご都合をお聞かせください。\n\n{me}"
     )
 
 
