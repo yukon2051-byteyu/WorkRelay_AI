@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { api, Card, CalEvent, CHANNEL, fmtDue, fmtTime, History, RequestDetail as Detail, statusClass } from "../api";
+import { api, Card, CalEvent, Candidate, CHANNEL, fmtDue, fmtTime, History, RequestDetail as Detail, statusClass } from "../api";
 import { ChannelLabel, IconCheck, IconClose, IconLink, IconToday, IconWarn } from "../icons";
 import { HelpTip } from "../help";
 import DocumentPanel from "./DocumentPanel";
@@ -15,13 +15,27 @@ function highlight(text: string, phrases: string[]): ReactNode[] {
   return text.split(re).map((part, i) => (list.includes(part) ? <mark key={i} className="hl">{part}</mark> : part));
 }
 
+/** 判断に必要な文だけを抜き出す（強調箇所を含む文）。省いたところは「…」で明示する */
+function excerpt(body: string, marks: string[]): { text: string; cut: boolean } {
+  const sentences = body.split(/(?<=[。！？!?\n])/).map((s) => s.trim()).filter(Boolean);
+  const keep = sentences.map((s, i) => (marks.some((m) => m && s.includes(m)) ? i : -1)).filter((i) => i >= 0);
+  if (!keep.length) return { text: body, cut: false };
+  let out = keep[0] > 0 ? "…" : "";
+  keep.forEach((i, k) => {
+    if (k > 0 && i !== keep[k - 1] + 1) out += "…";
+    out += sentences[i];
+  });
+  if (keep[keep.length - 1] < sentences.length - 1) out += "…";
+  return { text: out, cut: out.includes("…") };
+}
+
 type Props = {
   requestId: number;
   card?: Card;
   nowIso: string;
   events: CalEvent[];
   freeSlots: { start: string; end: string; minutes: number }[];
-  focus?: string; // 開いたときにスクロールする場所（candidate / slots / draft）
+  focus?: string; // 開いたときに表示するタブ・箇所（candidate / evidence / slots / draft / document / progress など）
   version: number; // 外で何か変わったら再読み込みするための番号
   onChanged: (message: string) => void;
   onClose: () => void;
@@ -31,11 +45,26 @@ const ROLE: Record<string, string> = {
   origin: "依頼", answer: "回答", change: "条件変更", question: "自分の確認", related: "関連", candidate: "関連候補",
 };
 
+/** 詳細のタブ。最初の判断に必要なものは「概要」にまとめ、長い情報は各タブで確認する */
+type Tab = "overview" | "messages" | "due" | "draft" | "document" | "progress";
+const TAB_LABEL: Record<Tab, string> = { overview: "概要", messages: "連絡", due: "期限", draft: "下書き", document: "資料", progress: "進行" };
+/** 一覧のボタンやツアーから渡される「開く場所」と、タブの対応 */
+const TAB_OF: Record<string, Tab> = {
+  detail: "overview", candidate: "overview", summary: "overview",
+  evidence: "messages", "candidate-source": "messages",
+  slots: "due", draft: "draft", document: "document",
+  progress: "progress", status: "progress", fields: "progress",
+};
+
 export default function RequestDetail({ requestId, card, nowIso, events, freeSlots, focus, version, onChanged, onClose }: Props) {
   const [d, setD] = useState<Detail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState<Tab>(TAB_OF[focus ?? ""] ?? "overview");
   const bodyRef = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const pendingScroll = useRef<string | null>(focus && focus !== "detail" ? focus : null);
+  const seenFocus = useRef<string | undefined>(focus);
 
   useEffect(() => {
     let alive = true;
@@ -44,12 +73,39 @@ export default function RequestDetail({ requestId, card, nowIso, events, freeSlo
     return () => { alive = false; };
   }, [requestId, version]);
 
-  // カードの操作ボタンから開いたときは、該当する欄までスクロールする
+  /** タブを開き、必要ならその中の箇所までスクロールする */
+  const open = (sec: string) => {
+    const t = TAB_OF[sec] ?? "overview";
+    pendingScroll.current = sec === "detail" ? null : sec;
+    if (t !== tab) setTab(t);
+    else scrollToPending();
+  };
+  const scrollToPending = () => {
+    const sec = pendingScroll.current;
+    const pane = bodyRef.current?.closest(".detail-pane");
+    if (!sec) { pane?.scrollTo({ top: 0 }); return; }
+    const el = bodyRef.current?.querySelector(`[data-sec="${sec}"]`);
+    if (el) {
+      el.scrollIntoView({ block: "start" });
+      pendingScroll.current = null;
+    }
+  };
+
+  // 一覧のボタン（返信案を確認・空き枠を確認など）やツアーから、開く場所が変わったとき
   useEffect(() => {
-    if (!d || !focus) return;
-    const el = bodyRef.current?.querySelector(`[data-sec="${focus}"]`);
-    el?.scrollIntoView({ block: "start", behavior: "smooth" });
-  }, [d, focus]);
+    if (focus === seenFocus.current) return;
+    seenFocus.current = focus;
+    open(focus ?? "detail");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus]);
+
+  // タブを切り替えたら、選んだタブを横スクロールの表示範囲に収め、目的の箇所（なければ先頭）を表示する
+  useLayoutEffect(() => {
+    if (!d) return;
+    tabsRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    if (pendingScroll.current) scrollToPending();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, d]);
 
   if (error) return <div className="detail-body"><div className="error-box">依頼を読み込めませんでした：{error}</div></div>;
   if (!d) return <div className="detail-body muted" style={{ paddingTop: 20 }}>読み込み中…</div>;
@@ -66,231 +122,314 @@ export default function RequestDetail({ requestId, card, nowIso, events, freeSlo
     }
   };
 
-  const jump = (sec: string) =>
-    bodyRef.current?.querySelector(`[data-sec="${sec}"]`)?.scrollIntoView({ block: "start", behavior: "smooth" });
-
   const pendingCands = d.candidates.filter((c) => c.status === "pending");
+  const decidedCands = d.candidates.filter((c) => c.status !== "pending");
   // 判断待ちの候補の連絡にある期限（まだ依頼には反映していない）
   const candWithDue = pendingCands.find((c) => c.proposed_values["提出希望日時"]);
   const candDue = candWithDue ? { value: candWithDue.proposed_values["提出希望日時"], channel: candWithDue.message.channel } : null;
   const proposedDue = candDue?.value ?? null;
   const newDue = d.due_change_status === "needs_consult" ? d.requested_due : proposedDue;
+  const tabs: Tab[] = ["overview", "messages", "due", "draft", ...(d.type_code === "document" ? ["document" as Tab] : []), "progress"];
+  const msgIds = new Set(d.messages.map((m) => m.id));
+
+  // 期限の要約（概要の「次にやること」の直下に置く）
+  const dueLine = (
+    <p className="due-line">
+      {candDue ? (
+        <span className="nw">{CHANNEL[candDue.channel]}での希望期限 <b>{fmtDue(candDue.value, nowIso)}</b><span className="tag-warn">（確認前）</span></span>
+      ) : d.due_change_status === "needs_consult" ? (
+        <span className="nw">希望期限 <b>{fmtDue(d.requested_due, nowIso)}</b><span className="tag-warn">（前倒しの相談中）</span></span>
+      ) : !d.committed_due && d.requested_due ? (
+        <span className="nw">希望期限 <b>{fmtDue(d.requested_due, nowIso)}</b>（未確定）</span>
+      ) : null}
+      {(candDue || d.due_change_status === "needs_consult") && <span className="sep">／</span>}
+      {d.committed_due ? <span className="nw">確定期限 <b>{fmtDue(d.committed_due, nowIso)}</b></span> : !d.requested_due && !candDue ? <span className="nw">期限未設定</span> : null}
+    </p>
+  );
+  const capacityLine = card?.capacity ? (
+    <p className="capacity">
+      <span className="nw">{card.capacity.until}までの空き{" "}
+        <span className={card.capacity.need_minutes && card.capacity.free_minutes < card.capacity.need_minutes ? "short" : ""}>
+          <b>{card.capacity.free_minutes}分</b>
+        </span></span>
+      {card.capacity.need_minutes && <><span className="sep">／</span><span className="nw">確定版に必要 <b>{card.capacity.need_minutes}分</b></span></>}
+    </p>
+  ) : !d.effort_minutes && (d.status === "ready" || d.status === "in_progress") ? (
+    <p className="capacity">作業時間は未見積もり</p>
+  ) : null;
 
   return (
     <div ref={bodyRef}>
+      {/* ヘッダー：依頼名・依頼者・状態・閉じる だけに絞る（メールアドレスは「連絡」、依頼種別は「進行」で確認） */}
       <header className="detail-head">
         <div className="detail-head-row">
-          <span className="badge type">{d.type_name}</span>
+          <h2>{d.title}</h2>
           <span className={`badge ${statusClass(d.status)}`}>
             {d.status === "ready" && <IconCheck size={12} />}{d.status_label}
           </span>
-          <span style={{ flex: 1 }} />
           <button className="btn ghost icon" onClick={onClose} aria-label="詳細を閉じる" title="詳細を閉じる（Esc）">
             <IconClose />
           </button>
         </div>
-        <h2 style={{ marginTop: 6 }}>{d.title}</h2>
-        <div className="faint">{d.requester_name}・{d.requester_email}</div>
-        {/* 依頼の進行状態を、利用者が自分で進める（作業開始・完了・取り消し）。すべて履歴に残る */}
-        <div className="status-actions" data-sec="status">
-          {d.status === "ready" && (
-            <button className="btn ghost" disabled={busy} onClick={() => run(() => api.updateRequest(d.id, { status: "in_progress" }), "作業中にしました")}>作業を始める</button>
-          )}
-          {(d.status === "ready" || d.status === "in_progress") && (
-            <button className="btn" disabled={busy} onClick={() => run(() => api.updateRequest(d.id, { status: "done" }), "完了にしました。今日の一覧から外れます")}>
-              <IconCheck size={13} /> 完了にする
+        <div className="faint requester">{d.requester_name}</div>
+        <div className="detail-tabs" role="tablist" aria-label="依頼の詳細" ref={tabsRef}>
+          {tabs.map((t) => (
+            <button key={t} id={`tab-${t}`} role="tab" className="detail-tab" aria-selected={tab === t} aria-controls={`panel-${t}`}
+              tabIndex={tab === t ? 0 : -1}
+              onClick={() => { pendingScroll.current = null; setTab(t); }}
+              onKeyDown={(e) => {
+                const i = tabs.indexOf(t);
+                const next = e.key === "ArrowRight" ? tabs[(i + 1) % tabs.length] : e.key === "ArrowLeft" ? tabs[(i - 1 + tabs.length) % tabs.length] : null;
+                if (next) { e.preventDefault(); setTab(next); window.setTimeout(() => document.getElementById(`tab-${next}`)?.focus(), 0); }
+              }}>
+              {TAB_LABEL[t]}
+              {t === "overview" && pendingCands.length > 0 && <span className="tab-dot warn" aria-label="判断待ちあり" />}
+              {t === "draft" && d.drafts.some((x) => x.needs_review) && <span className="tab-dot warn" aria-label="更新確認あり" />}
             </button>
-          )}
-          {d.status === "done" && (
-            <button className="btn ghost" disabled={busy} onClick={() => run(() => api.updateRequest(d.id, { status: "in_progress" }), "完了を取り消しました")}>完了を取り消す</button>
-          )}
+          ))}
         </div>
-        <nav className="detail-links" aria-label="詳細内の移動">
-          <button className="btn ghost" onClick={() => jump(pendingCands.length ? "candidate" : "evidence")}>
-            元の連絡（{d.messages.length}件{pendingCands.length ? `＋候補${pendingCands.length}件` : ""}）
-          </button>
-          <button className="btn ghost" onClick={() => jump("slots")}>期限と予定表</button>
-          <button className="btn ghost" onClick={() => jump("draft")}>下書き</button>
-          {d.type_code === "document" && <button className="btn ghost" onClick={() => jump("document")}>資料</button>}
-          <button className="btn ghost" onClick={() => jump("progress")}>進行</button>
-        </nav>
       </header>
 
       <div className="detail-body">
-        {card && (
-          <section className="block">
+        {/* ================= 概要：次にやること・期限・判断に必要な根拠・判断ボタン ================= */}
+        <div role="tabpanel" id="panel-overview" aria-labelledby="tab-overview" hidden={tab !== "overview"}>
+          <section className="block" data-sec="summary">
             <div className="next-box">
-              <div className="label"><IconToday size={13} />次にやること<HelpTip id="next" label="次にやること" /></div>
-              <div className="text">{card.next_action}</div>
-              {card.capacity ? (
-                <>
-                  <p className="reason">{card.why_now[0]}</p>
-                  {/* 何が足りないかを数字で読めるよう、空き時間と必要時間を強調する */}
-                  <p className="capacity">
-                    {card.capacity.until}までの空き{" "}
-                    <span className={card.capacity.need_minutes && card.capacity.free_minutes < card.capacity.need_minutes ? "short" : ""}>
-                      <b>{card.capacity.free_minutes}分</b>
-                    </span>
-                    {card.capacity.need_minutes && <>／確定版に必要 <b>{card.capacity.need_minutes}分</b></>}
-                  </p>
-                </>
-              ) : (
-                card.why_now.map((w) => <p className="reason" key={w}>{w}</p>)
-              )}
+              <div className="label"><IconToday size={13} />{card ? "次にやること" : "期限"}<HelpTip id="next" label="次にやること" /></div>
+              {card && <div className="text">{card.next_action}</div>}
+              {dueLine}
+              {capacityLine}
+              {card && !card.capacity && card.why_now[0] && <p className="reason">{card.why_now[0]}</p>}
             </div>
           </section>
-        )}
 
-        {/* ---- 関連候補（利用者が同一案件か判断する） ---- */}
-        {pendingCands.length > 0 && (
-          <section className="block" data-sec="candidate">
-            <h3>同じ依頼の候補<span className="badge warn"><IconWarn size={12} />判断待ち</span><HelpTip id="candidate" label="同じ依頼の候補" /></h3>
-            {pendingCands.map((c) => (
-              <div key={c.id}>
-                <MessageView m={c.message} role="candidate" candidate marks={c.highlights} />
-                {/* デモは固定ルールで候補を出しているので「AIが」とは書かない */}
-                <div className="reasons-title">候補と判断した理由</div>
-                <ul className="reasons">
-                  {c.reasons.map((r) => <li key={r}>{r}</li>)}
-                </ul>
-                <div className="btn-row">
-                  <button className="btn primary" disabled={busy} onClick={() => run(() => api.acceptCandidate(c.id), "同じ依頼としてつなぎました。確定期限はまだ変えていません")}>
-                    <IconLink size={14} /> 同じ依頼としてつなぐ
-                  </button>
-                  <button className="btn" disabled={busy} onClick={() => run(() => api.rejectCandidate(c.id), "別の案件として扱います")}>
-                    別の案件として扱う
-                  </button>
-                </div>
-              </div>
-            ))}
-          </section>
-        )}
-
-        {/* ---- 期限と予定表 ---- */}
-        <section className="block" data-sec="slots">
-          <h3>期限と予定表<HelpTip id="slots" label="期限と予定表" /></h3>
-          {/* 確定期限・現在の希望期限・候補の連絡にある期限・登録済みの作業枠を、別々の行で示す */}
-          <dl className="due-grid">
-            <dt>確定期限</dt>
-            <dd className={d.committed_due ? "committed" : ""}>
-              {fmtDue(d.committed_due, nowIso)}
-              {d.committed_due && <span className="note">引き受け済み</span>}
-            </dd>
-            <dt>現在の希望期限</dt>
-            <dd className={d.due_change_status === "needs_consult" ? "candidate" : ""}>
-              {fmtDue(d.requested_due, nowIso)}
-              {d.due_change_status === "needs_consult" && (
-                <span className="note">前倒しの相談中（確定期限はまだ変えていません）</span>
-              )}
-            </dd>
-            {candDue && (
-              <>
-                <dt>変更候補</dt>
-                <dd className="candidate">
-                  <IconWarn size={12} /> {fmtDue(candDue.value, nowIso)}
-                  <span className="note">（{CHANNEL[candDue.channel]}・確認前）</span>
-                </dd>
-              </>
-            )}
-            <dt>登録済みの作業枠</dt>
-            <dd className={d.work_slots.length ? "slot" : ""}>
-              {d.work_slots.length
-                ? d.work_slots.map((s) => `${fmtTime(s.start_at)}–${fmtTime(s.end_at)}`).join("、")
-                : "未登録"}
-            </dd>
-            <dt>必要な作業時間</dt>
-            <dd>{d.effort_minutes ? `${d.effort_minutes}分` : "未見積もり"}</dd>
-          </dl>
-
-          {d.due_change_status === "needs_consult" && (
-            <div className="notice warn" role="status">
-              <span className="ico"><IconWarn /></span>
-              <div>
-                <b>変更の相談が必要</b>：希望期限が {fmtDue(d.requested_due, nowIso)} に変わりました。
-                確認するまで、確定期限（{fmtDue(d.committed_due, nowIso)}）と作業枠はそのままです。
-                <div className="btn-row">
-                  <button className="btn" disabled={busy} onClick={() => run(() => api.decideDue(d.id, "accept"), "確定期限を変更しました")}>
-                    確定期限を {fmtDue(d.requested_due, nowIso)} に変更
-                  </button>
-                  <button className="btn" disabled={busy} onClick={() => run(() => api.decideDue(d.id, "keep"), "確定期限はそのままにしました")}>
-                    {fmtDue(d.committed_due, nowIso)} のまま
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-          {pendingCands.length > 0 && proposedDue && (
-            <div className="notice info">
-              <span className="ico"><IconLink /></span>
-              <div>候補の連絡を「同じ依頼」とつなぐと、希望期限の変更として記録されます。確定期限は、その後のあなたの判断まで変わりません。</div>
-            </div>
+          {pendingCands.length > 0 && (
+            <section className="block decide" data-sec="candidate">
+              <h3>同じ依頼ですか？<span className="badge warn"><IconWarn size={12} />判断待ち</span><HelpTip id="candidate" label="同じ依頼の候補" /></h3>
+              {pendingCands.map((c) => <Decide key={c.id} c={c} d={d} nowIso={nowIso} busy={busy} run={run} onMore={() => open("candidate-source")} />)}
+            </section>
           )}
 
-          <SlotPlanner detail={d} nowIso={nowIso} onChanged={onChanged} onJump={jump} />
-
-          <div style={{ marginTop: 12 }}>
-            <div className="faint" style={{ marginBottom: 4 }}>今日の予定（{d.work_slots.length ? "この依頼の作業枠を強調" : "空き時間は点線"}）</div>
-            <DayTimeline events={events} freeSlots={freeSlots} requestId={d.id} deadline={newDue}
-              deadlineLabel={candDue ? "変更候補の期限（確認前）" : "希望期限（前倒しの相談中）"} />
-          </div>
-        </section>
-
-        {/* ---- 下書き ---- */}
-        <section className="block" data-sec="draft">
-          <h3>用意した下書き{d.drafts.some((x) => x.needs_review) && <span className="badge warn"><IconWarn size={12} />更新確認</span>}</h3>
-          <DraftPanel detail={d} onChanged={onChanged} />
-        </section>
-
-        {/* ---- 会議資料（資料作成の依頼のみ） ---- */}
-        {d.type_code === "document" && (
-          <section className="block" data-sec="document">
-            <h3>会議資料のたたき台{d.document?.needs_review && <span className="badge warn"><IconWarn size={12} />更新確認</span>}</h3>
-            <DocumentPanel detail={d} onChanged={onChanged} />
-          </section>
-        )}
-
-        {/* ---- 進行 ---- */}
-        <section className="block" data-sec="progress">
-          <h3>進行</h3>
-          <Stages d={d} card={card} nowIso={nowIso} />
-        </section>
-
-        {/* ---- 項目 ---- */}
-        <section className="block" data-sec="fields">
-          <h3>着手に必要な項目</h3>
-          <table className="fields">
-            <tbody>
-              {d.fields.map((f) => (
-                <tr key={f.id}>
-                  <td>{f.name}</td>
-                  <td>
-                    {f.state === "filled" ? (
-                      <>
-                        {f.name === "提出希望日時" && f.value ? fmtDue(f.value, nowIso) : f.value}{" "}
-                        <span className={`badge ${f.confidence === "inferred" ? "warn" : ""}`}>
-                          {f.confidence === "inferred" ? "推測" : "明記"}
-                        </span>
-                      </>
-                    ) : f.state === "deferred" ? (
-                      <span className="badge warn"><IconWarn size={12} />回答保留</span>
-                    ) : (
-                      <span className="badge warn"><IconWarn size={12} />不足</span>
-                    )}
-                    {f.evidence_text && <span className="ev">根拠：「{f.evidence_text}」</span>}
-                  </td>
-                </tr>
+          {decidedCands.length > 0 && (
+            <section className="block decided" data-sec="decided">
+              {decidedCands.map((c) => (
+                <p key={c.id} className="decided-line">
+                  <IconCheck size={13} /> {CHANNEL[c.message.channel]}の連絡（{c.message.sender_name}・{fmtDue(c.message.received_at, nowIso)}）を
+                  {c.status === "accepted" ? "同じ依頼としてつなぎました。確定期限は変えていません。" : "別の案件として扱いました。"}
+                  <button className="link-btn" onClick={() => open(c.status === "accepted" ? "evidence" : "candidate-source")}>連絡で見る</button>
+                  <button className="link-btn" onClick={() => open("progress")}>経緯を見る</button>
+                </p>
               ))}
-            </tbody>
-          </table>
-        </section>
+            </section>
+          )}
+        </div>
 
-        {/* ---- 元の連絡 ---- */}
-        <section className="block" data-sec="evidence">
-          <h3>元の連絡（{d.messages.length}件）</h3>
-          {d.messages.map((m) => (
-            <MessageView key={m.id} m={m} role={m.role ?? ""} />
-          ))}
-        </section>
+        {/* ================= 連絡：元の連絡と、関連候補の連絡（全文・判定理由） ================= */}
+        <div role="tabpanel" id="panel-messages" aria-labelledby="tab-messages" hidden={tab !== "messages"}>
+          <section className="block">
+            <dl className="draft-meta">
+              <dt>依頼者</dt><dd>{d.requester_name}　<span className="faint">{d.requester_email}</span></dd>
+            </dl>
+          </section>
+          {d.candidates.some((c) => !msgIds.has(c.message.id)) && (
+            <section className="block" data-sec="candidate-source">
+              <h3>関連候補の連絡（同じ依頼かどうかの判断対象）</h3>
+              {d.candidates.filter((c) => !msgIds.has(c.message.id)).map((c) => (
+                <div key={c.id} className="cand-source">
+                  <MessageView m={c.message} role="candidate" candidate marks={c.highlights} />
+                  {/* デモは固定ルールで候補を出しているので「AIが」とは書かない */}
+                  <div className="reasons-title">候補と判断した理由</div>
+                  <ul className="reasons">{c.reasons.map((r) => <li key={r}>{r}</li>)}</ul>
+                  {c.status === "pending" ? (
+                    <div className="btn-row">
+                      <button className="btn primary" disabled={busy} onClick={() => run(() => api.acceptCandidate(c.id), "同じ依頼としてつなぎました。確定期限はまだ変えていません")}>
+                        <IconLink size={14} /> 同じ依頼としてつなぐ
+                      </button>
+                      <button className="btn" disabled={busy} onClick={() => run(() => api.rejectCandidate(c.id), "別の案件として扱います")}>別の案件として扱う</button>
+                    </div>
+                  ) : (
+                    <p className="faint" style={{ margin: "6px 0 0" }}>判断済み：{c.status === "accepted" ? "同じ依頼としてつないだ" : "別の案件として扱った"}</p>
+                  )}
+                </div>
+              ))}
+            </section>
+          )}
+          <section className="block" data-sec="evidence">
+            <h3>元の連絡（{d.messages.length}件）</h3>
+            {d.messages.map((m) => <MessageView key={m.id} m={m} role={m.role ?? ""} />)}
+          </section>
+        </div>
+
+        {/* ================= 期限：期限の内訳・作業枠の提案・今日の予定 ================= */}
+        <div role="tabpanel" id="panel-due" aria-labelledby="tab-due" hidden={tab !== "due"}>
+          <section className="block" data-sec="slots">
+            <h3>期限と予定表<HelpTip id="slots" label="期限と予定表" /></h3>
+            {/* 確定期限・現在の希望期限・候補の連絡にある期限・登録済みの作業枠を、別々の行で示す */}
+            <dl className="due-grid">
+              <dt>確定期限</dt>
+              <dd className={d.committed_due ? "committed" : ""}>
+                {fmtDue(d.committed_due, nowIso)}
+                {d.committed_due && <span className="note">引き受け済み</span>}
+              </dd>
+              <dt>現在の希望期限</dt>
+              <dd className={d.due_change_status === "needs_consult" ? "candidate" : ""}>
+                {fmtDue(d.requested_due, nowIso)}
+                {d.due_change_status === "needs_consult" && <span className="note">前倒しの相談中（確定期限はまだ変えていません）</span>}
+              </dd>
+              {candDue && (
+                <>
+                  <dt>変更候補</dt>
+                  <dd className="candidate">
+                    <IconWarn size={12} /> {fmtDue(candDue.value, nowIso)}
+                    <span className="note">（{CHANNEL[candDue.channel]}・確認前）</span>
+                  </dd>
+                </>
+              )}
+              <dt>登録済みの作業枠</dt>
+              <dd className={d.work_slots.length ? "slot" : ""}>
+                {d.work_slots.length ? d.work_slots.map((s) => `${fmtTime(s.start_at)}–${fmtTime(s.end_at)}`).join("、") : "未登録"}
+              </dd>
+              <dt>必要な作業時間</dt>
+              <dd>{d.effort_minutes ? `${d.effort_minutes}分` : "未見積もり"}</dd>
+            </dl>
+
+            {d.due_change_status === "needs_consult" && (
+              <div className="notice warn" role="status">
+                <span className="ico"><IconWarn /></span>
+                <div>
+                  <b>変更の相談が必要</b>：希望期限が {fmtDue(d.requested_due, nowIso)} に変わりました。
+                  確認するまで、確定期限（{fmtDue(d.committed_due, nowIso)}）と作業枠はそのままです。
+                  <div className="btn-row">
+                    <button className="btn" disabled={busy} onClick={() => run(() => api.decideDue(d.id, "accept"), "確定期限を変更しました")}>
+                      確定期限を {fmtDue(d.requested_due, nowIso)} に変更
+                    </button>
+                    <button className="btn" disabled={busy} onClick={() => run(() => api.decideDue(d.id, "keep"), "確定期限はそのままにしました")}>
+                      {fmtDue(d.committed_due, nowIso)} のまま
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {pendingCands.length > 0 && proposedDue && (
+              <div className="notice info">
+                <span className="ico"><IconLink /></span>
+                <div>候補の連絡を「同じ依頼」とつなぐと、希望期限の変更として記録されます。確定期限は、その後のあなたの判断まで変わりません。</div>
+              </div>
+            )}
+
+            <SlotPlanner detail={d} nowIso={nowIso} onChanged={onChanged} onJump={open} />
+
+            <div style={{ marginTop: 12 }}>
+              <div className="faint" style={{ marginBottom: 4 }}>今日の予定（{d.work_slots.length ? "この依頼の作業枠を強調" : "空き時間は点線"}）</div>
+              <DayTimeline events={events} freeSlots={freeSlots} requestId={d.id} deadline={newDue}
+                deadlineLabel={candDue ? "変更候補の期限（確認前）" : "希望期限（前倒しの相談中）"} />
+            </div>
+          </section>
+        </div>
+
+        {/* ================= 下書き（タブを切り替えても、編集中の本文は保持する） ================= */}
+        <div role="tabpanel" id="panel-draft" aria-labelledby="tab-draft" hidden={tab !== "draft"}>
+          <section className="block" data-sec="draft">
+            <h3>用意した下書き{d.drafts.some((x) => x.needs_review) && <span className="badge warn"><IconWarn size={12} />更新確認</span>}</h3>
+            <DraftPanel detail={d} onChanged={onChanged} />
+          </section>
+        </div>
+
+        {/* ================= 資料（資料作成の依頼のみ） ================= */}
+        {d.type_code === "document" && (
+          <div role="tabpanel" id="panel-document" aria-labelledby="tab-document" hidden={tab !== "document"}>
+            <section className="block" data-sec="document">
+              <h3>会議資料のたたき台{d.document?.needs_review && <span className="badge warn"><IconWarn size={12} />更新確認</span>}</h3>
+              <DocumentPanel detail={d} onChanged={onChanged} />
+            </section>
+          </div>
+        )}
+
+        {/* ================= 進行：状態の操作・依頼の種類・着手に必要な項目・経緯 ================= */}
+        <div role="tabpanel" id="panel-progress" aria-labelledby="tab-progress" hidden={tab !== "progress"}>
+          <section className="block" data-sec="status">
+            <dl className="draft-meta">
+              <dt>依頼種別</dt><dd>{d.type_name}</dd>
+              <dt>状態</dt><dd>{d.status_label}</dd>
+            </dl>
+            {/* 依頼の進行状態を、利用者が自分で進める（作業開始・完了・取り消し）。すべて履歴に残る */}
+            <div className="status-actions">
+              {d.status === "ready" && (
+                <button className="btn ghost" disabled={busy} onClick={() => run(() => api.updateRequest(d.id, { status: "in_progress" }), "作業中にしました")}>作業を始める</button>
+              )}
+              {(d.status === "ready" || d.status === "in_progress") && (
+                <button className="btn" disabled={busy} onClick={() => run(() => api.updateRequest(d.id, { status: "done" }), "完了にしました。今日の一覧から外れます")}>
+                  <IconCheck size={13} /> 完了にする
+                </button>
+              )}
+              {d.status === "done" && (
+                <button className="btn ghost" disabled={busy} onClick={() => run(() => api.updateRequest(d.id, { status: "in_progress" }), "完了を取り消しました")}>完了を取り消す</button>
+              )}
+            </div>
+          </section>
+          <section className="block" data-sec="fields">
+            <h3>着手に必要な項目</h3>
+            <table className="fields">
+              <tbody>
+                {d.fields.map((f) => (
+                  <tr key={f.id}>
+                    <td>{f.name}</td>
+                    <td>
+                      {f.state === "filled" ? (
+                        <>
+                          {f.name === "提出希望日時" && f.value ? fmtDue(f.value, nowIso) : f.value}{" "}
+                          <span className={`badge ${f.confidence === "inferred" ? "warn" : ""}`}>{f.confidence === "inferred" ? "推測" : "明記"}</span>
+                        </>
+                      ) : f.state === "deferred" ? (
+                        <span className="badge warn"><IconWarn size={12} />回答保留</span>
+                      ) : (
+                        <span className="badge warn"><IconWarn size={12} />不足</span>
+                      )}
+                      {f.evidence_text && <span className="ev">根拠：「{f.evidence_text}」</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+          <section className="block" data-sec="progress">
+            <h3>進行</h3>
+            <Stages d={d} card={card} nowIso={nowIso} />
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** 概要の「同じ依頼ですか？」：連絡元・送信者・時刻、判断に必要な抜粋、期限への影響、判断ボタン */
+function Decide({ c, d, nowIso, busy, run, onMore }: {
+  c: Candidate; d: Detail; nowIso: string; busy: boolean;
+  run: (fn: () => Promise<unknown>, message: string) => Promise<void>; onMore: () => void;
+}) {
+  const ex = excerpt(c.message.body, c.highlights);
+  const impact = d.committed_due
+    ? `同じ依頼としてつないでも、確定期限は${fmtDue(d.committed_due, nowIso)}のままです${d.work_slots.length ? "（登録済みの作業枠も変わりません）" : ""}。`
+    : "同じ依頼としてつないでも、期限は自動では変わりません。";
+  return (
+    <div className="decide-item">
+      <div className="msg candidate">
+        <div className="msg-head">
+          <ChannelLabel channel={c.message.channel} />
+          <span className="from">{c.message.sender_name}</span>
+          <span>{fmtDue(c.message.received_at, nowIso)}</span>
+          <span className="badge">関連候補</span>
+        </div>
+        <blockquote className="msg-body excerpt">{highlight(ex.text, c.highlights)}</blockquote>
+        {ex.cut && <div className="faint excerpt-note">抜粋です（「…」は省略した箇所）</div>}
+      </div>
+      <p className="impact"><IconLink size={12} /> {impact}期限を変えるかは、つないだ後に別に決めます。</p>
+      <div className="btn-row">
+        <button className="btn primary" disabled={busy} onClick={() => run(() => api.acceptCandidate(c.id), "同じ依頼としてつなぎました。確定期限はまだ変えていません")}>
+          <IconLink size={14} /> 同じ依頼としてつなぐ
+        </button>
+        <button className="btn" disabled={busy} onClick={() => run(() => api.rejectCandidate(c.id), "別の案件として扱います")}>別の案件として扱う</button>
+        <button className="link-btn decide-more" onClick={onMore}>原文と判定理由を見る</button>
       </div>
     </div>
   );

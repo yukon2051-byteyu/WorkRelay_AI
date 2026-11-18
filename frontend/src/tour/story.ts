@@ -103,7 +103,7 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
     { ...sA, seconds: 5, target: ".list-pane", screen: { sel: { id: ids.sales } },
       text: "中央で、仕事を見ます。「今日やること」では、対応する順に仕事が並びます。" },
     { ...sA, seconds: 7, target: ".detail-pane",
-      text: "右で、根拠を確認します。行を選ぶと、次にやること・元の連絡・期限と予定表・下書き・資料が開きます。それでは、営業や経理から依頼を受ける青木さんの一日を見ていきましょう！" },
+      text: "右で、根拠を確認します。行を選ぶと詳細が開き、「概要」に次にやること・期限・判断に必要な根拠がまとまります。詳しくは「連絡」「期限」「下書き」などのタブで確かめます。それでは、営業や経理から依頼を受ける青木さんの一日を見ていきましょう！" },
 
     // ② 09:00 会社に着く
     { ...s1, seconds: 9, target: ".today-head", can: can1, screen: { sel: null },
@@ -117,18 +117,22 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
     { ...s1, seconds: 6, target: '.section[aria-label="今日の空き時間で進める"]', can: can1,
       text: "空き時間で進められる仕事は、その下にまとまります。並び順の変更や「後で確認」は、各行の「⋯」から青木さん自身が調整できます。" },
 
-    // ③ 09:02 昨夜のTeamsを確認する
-    { ...s2, seconds: 9, target: "[data-sec=candidate] .msg.candidate", can: can2, screen: { sel: { id: ids.sales, focus: "candidate" } },
-      text: "昨夜、営業から会議の前倒しを相談されました。このTeamsの連絡は、昨日Outlookで受けた依頼と同じでしょうか。" },
+    // ③ 09:02 昨夜のTeamsを確認する（概要の「同じ依頼ですか？」→ 原文と判定理由 → 概要に戻って判断）
+    { ...s2, seconds: 9, target: "[data-sec=candidate] .msg.candidate, [data-sec=summary] .due-line", can: can2, screen: { sel: { id: ids.sales, focus: "candidate" } },
+      text: "昨夜、営業から会議の前倒しを相談されました。「概要」の「同じ依頼ですか？」に、このTeamsの連絡の要点が抜き出されています。希望は今日11:00（確認前）、引き受け済みの確定期限は今日15:00です。" },
+    { ...s2, seconds: 5, target: "[data-sec=candidate] .decide-more", can: can2,
+      text: "全文と、同じ依頼の候補とした理由は「原文と判定理由を見る」で確かめられます。開いてみましょう。" },
+    { ...s2, seconds: 8, target: "[data-sec=candidate-source]", can: can2, screen: { sel: { id: ids.sales, focus: "candidate-source" } },
+      text: "「連絡」タブに、Teamsの全文と、候補と判断した理由が表示されました。同じ依頼者・依頼名の語・メールで送った依頼への言及が手がかりです。" },
     { ...s2, seconds: 7, target: "[data-sec=evidence] .msg", can: can2, screen: { sel: { id: ids.sales, focus: "evidence" } },
-      text: "こちらが昨日のOutlookの元の依頼です。売上資料を「明日15:00まで」に、という内容でした。" },
-    { ...s2, seconds: 8, target: "[data-sec=candidate] .reasons, [data-sec=candidate] .btn-row", can: can2, screen: { sel: { id: ids.sales, focus: "candidate" } },
-      text: "同じ案件の候補とした理由です。同じ依頼なら「同じ依頼としてつなぐ」、別件なら「別の案件として扱う」を選びます。判断するのは青木さんです。" },
-    { ...s2, seconds: 6, target: "[data-sec=slots] .due-grid", can: can2, screen: { sel: { id: ids.sales, focus: "slots" } },
-      text: "つなぐ前の期限です。今日11:00は「変更候補（Teams・確認前）」、引き受け済みの確定期限は今日15:00です。" },
-    { ...s2, seconds: 8, target: "[data-sec=slots] .due-grid", can: can2,
-      text: "青木さんは同じ依頼としてつなぎました。今日11:00は依頼者の希望として記録されましたが、引き受け済みの期限は今日15:00のままです。",
-      detail: "つなぐ判断と、期限を変える判断は別です。期限を変えるときは「確定期限を変更」を青木さんが選びます。",
+      text: "その下が、昨日のOutlookの元の依頼です。売上資料を「明日15:00まで」に、という内容でした。" },
+    { ...s2, seconds: 4, target: "#tab-overview", can: can2,
+      text: "判断は「概要」タブに戻って行います。" },
+    { ...s2, seconds: 8, target: "[data-sec=candidate] .impact, [data-sec=candidate] .btn-row", can: can2, screen: { sel: { id: ids.sales, focus: "candidate" } },
+      text: "つないでも確定期限は今日15:00のまま、という影響がボタンの上に書かれています。同じ依頼なら「同じ依頼としてつなぐ」、別件なら「別の案件として扱う」。判断するのは青木さんです。" },
+    { ...s2, seconds: 8, target: "[data-sec=summary] .due-line, [data-sec=decided]", can: can2, screen: { sel: { id: ids.sales, focus: "summary" } },
+      text: "青木さんは同じ依頼としてつなぎました。今日11:00は希望期限（前倒しの相談中）として記録されましたが、引き受け済みの確定期限は今日15:00のままです。",
+      detail: "つなぐ判断と、期限を変える判断は別です。期限を変えるときは「期限」タブの「確定期限を変更」を青木さんが選びます。",
       act: async () => {
         const d = await api.request(ids.sales);
         const c = d.candidates.find((x) => x.status === "pending");
@@ -137,10 +141,14 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
       } },
 
     // ④ 09:05 営業への返信を用意する（「？」の説明は、実際に使うこの場面で紹介する）
-    { ...s3, seconds: 9, target: ".next-box", can: can3, screen: { sel: { id: ids.sales, focus: "status" } },
+    { ...s3, seconds: 9, target: ".next-box", can: can3,
       text: "11時までの空きは30分。確定版には60分必要です。そこで青木さんは、速報版で足りるかを先に確認します。見出しの横の「？」を押すと、その欄の説明が開きます。" },
+    { ...s3, seconds: 4, target: "#tab-due", can: can3,
+      text: "空き時間を予定表で確かめます。「期限」タブを開きます。" },
     { ...s3, seconds: 9, target: "[data-sec=slots] .timeline .tl-row:nth-child(-n+4)", can: can3, screen: { sel: { id: ids.sales, focus: "slots" } },
       text: "予定表と見比べると、11:00までに空いているのは9:00–9:30の30分だけ。9:30からは会議が続きます。" },
+    { ...s3, seconds: 4, target: "#tab-draft", can: can3,
+      text: "返信案は「下書き」タブにあります。" },
     { ...s3, seconds: 9, target: "[data-sec=draft] .draft textarea", can: can3, screen: { sel: { id: ids.sales, focus: "draft" } },
       text: "返信案には「11時までに速報版、確定版は15時まで」の提案が入っています。青木さんは一文を書き足しました。",
       act: async () => {
@@ -158,6 +166,8 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
       } },
 
     // ⑤ 09:20 会議資料を準備する
+    { ...s4, seconds: 4, target: "#tab-document", can: can4,
+      text: "次は会議資料です。「資料」タブを開きます。" },
     { ...s4, seconds: 8, target: "[data-sec=document] .slides", can: can4, screen: { sel: { id: ids.sales, focus: "document" } },
       text: "先に用意されたたたき台を開きます。概要・数字と変化・会議で確認したいことの3枚です。" },
     { ...s4, seconds: 9, target: "[data-sec=document] .slide:nth-child(2) .slide-table", can: can4,
@@ -171,7 +181,9 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
 
     // ⑥ 10:00 別の依頼が着手可能になる
     { ...s5, seconds: 9, target: `[data-request-row="${ids.expense}"]`, can: can5, screen: { page: "requests", sel: null },
-      text: "「依頼」の一覧です。経費一覧は「着手可能」になっています。" },
+      text: "「依頼」の一覧です。経費一覧は「着手可能」になっています。行を選んで詳細を開きます。" },
+    { ...s5, seconds: 4, target: "#tab-progress", can: can5, screen: { sel: { id: ids.expense, focus: "detail" } },
+      text: "経費一覧の詳細が開きました。着手に必要な項目は「進行」タブで確かめます。" },
     { ...s5, seconds: 9, target: "[data-sec=fields]", can: can5, screen: { sel: { id: ids.expense, focus: "fields" } },
       text: "昨夜の返信で、不足していた対象部門と集計単位が分かりました。どの文から読み取ったかも、根拠として残っています。" },
     { ...s5, seconds: 9, target: "[data-sec=progress]", can: can5, screen: { sel: { id: ids.expense, focus: "progress" } },
@@ -182,6 +194,8 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
       text: "情報が足りない依頼では「確認文を作る」、すぐに扱わない依頼では「⋯」の「後で確認」を選べます。" },
 
     // ⑦ 10:05 予定表で作業枠を確保する
+    { ...s6, seconds: 4, target: `[data-request-id="${ids.expense}"] .card-buttons .btn:first-child`, can: can6,
+      text: "経費一覧の作業時間を確保します。「空き枠を確認」を押すと、詳細の「期限」タブが開きます。" },
     { ...s6, seconds: 9, target: "[data-sec=slots] .planner", can: can6, screen: { sel: { id: ids.expense, focus: "slots" } },
       text: "経費一覧に必要な45分が入る空き枠の候補です。会議や昼休みと重ならず、期限の11/20に間に合う枠が早い順に並びます。" },
     { ...s6, seconds: 10, target: "[data-sec=slots] .planner .registered-row", can: can6,
@@ -216,10 +230,12 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
     // ⑧ 15:00 対応状況を確認する（予定表から「今日やること」へ戻る）
     { ...s7, seconds: 4, target: navTo("今日やること"),
       text: "午後です。左の「今日やること」に戻って、売上資料の状況を確認します。" },
-    { ...s7, seconds: 10, target: "[data-sec=progress]", can: can7, screen: { page: "today", sel: { id: ids.sales, focus: "progress" } },
+    { ...s7, seconds: 4, target: `[data-request-id="${ids.sales}"]`, can: can7, screen: { page: "today", sel: null },
+      text: "売上資料の行を選び、詳細の「進行」タブで履歴を確かめます。" },
+    { ...s7, seconds: 10, target: "[data-sec=progress]", can: can7, screen: { sel: { id: ids.sales, focus: "progress" } },
       text: "確定版を仕上げた青木さんは、売上資料の履歴を確認します。受信、関連付け、下書きの編集などが順に記録されています。" },
-    { ...s7, seconds: 8, target: "[data-sec=status]", can: can7, screen: { sel: { id: ids.sales, focus: "status" } },
-      text: "対応が終わったので「完了にする」を押します。" },
+    { ...s7, seconds: 8, target: "[data-sec=status] .status-actions", can: can7, screen: { sel: { id: ids.sales, focus: "status" } },
+      text: "対応が終わったので、「進行」タブの「完了にする」を押します。" },
     { ...s7, seconds: 12, target: ".detail-head-row, .stats .stat:first-child", can: can7,
       text: "状態が「完了」になり、売上資料は今日の一覧から外れました。「今すぐ対応」は3件から2件に減っています。完了は取り消すこともできます。",
       act: async () => {
