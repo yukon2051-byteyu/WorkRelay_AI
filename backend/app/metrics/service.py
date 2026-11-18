@@ -2,7 +2,8 @@
 
 値の出どころを必ず区別する。
   sample   … デモのサンプル値（架空の過去データ。導入前後の比較の例）
-  measured … デモ中の実測値（このデモのデータと、画面操作の記録から集計）
+  browser … このブラウザでの操作時間（画面操作の記録の時刻から計測。デモツアーの閲覧時間は含めない）
+  history … 架空の依頼履歴から集計（デモの架空データ。デモ中の操作も反映）
   real     … 実利用での計測値（実連携後に計測。現在は未計測）
 比較には、期間・件数・集計条件を一緒に返す。
 """
@@ -15,7 +16,9 @@ from app import config
 
 LABELS = {
     "sample": "サンプル値（架空の過去データ）",
-    "measured": "デモ中の実測値",
+    # 「デモ中の実測値」を、何から測ったかで2つに分ける
+    "browser": "このブラウザでの操作時間",   # この画面での操作の記録（時刻）から計測。ツアー閲覧中は含めない
+    "history": "架空の依頼履歴から集計",     # デモの架空の依頼履歴（デモ中の操作も反映）から集計
     "real": "実利用の計測値",
 }
 USAGE_KINDS = ("home_open", "first_action")
@@ -46,7 +49,7 @@ def morning_planning(conn) -> dict:
     measured = None
     if secs:
         measured = {"count": len(secs), "latest_seconds": round(secs[-1]), "median_seconds": round(statistics.median(secs)),
-                    "condition": "「今日やること」を開いてから、最初の操作（返信案を開く・判断・並べ替えなど）をするまで"}
+                    "condition": "「今日やること」を開いてから、最初の操作（返信案を開く・判断・並べ替えなど）をするまで。デモツアーを見ている時間は含めない"}
     return {"measured": measured}
 
 

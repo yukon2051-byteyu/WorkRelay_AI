@@ -108,12 +108,12 @@ export default function Today({ home, selectedId, onSelect, onChanged, onIngest 
             <span className="stat-label">今すぐ対応</span>
             <span className="stat-value">{nowItems.length}件</span>
           </div>
-          <button className={`stat stat-btn${s.suspicious ? " danger" : ""}`} onClick={openSuspicious}
+          <button className={`stat stat-btn${s.suspicious ? " warn" : ""}`} onClick={openSuspicious}
             aria-label={`要確認 ${s.suspicious}件。取り込みの内訳で確認する`}>
             <span className="stat-label">{s.suspicious > 0 && <IconWarn size={12} />} 要確認</span>
             <span className="stat-value">{s.suspicious}件</span>
           </button>
-          <div className="stat">
+          <div className="stat free">
             <span className="stat-label">今日の空き</span>
             <span className="stat-value">{fmtMinutes(freeMinutes)}</span>
           </div>

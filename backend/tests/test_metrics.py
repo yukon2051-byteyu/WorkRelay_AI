@@ -8,10 +8,11 @@ def _setup(client):
 
 
 def test_report_labels_distinguish_sources(client):
-    """サンプル値・デモ中の実測値・実利用の計測値を区別して返す。"""
+    """サンプル値・このブラウザでの操作時間・架空の依頼履歴からの集計・実利用の計測値を区別して返す。"""
     _setup(client)
     r = client.get("/api/report").json()
-    assert set(r["labels"]) == {"sample", "measured", "real"}
+    assert set(r["labels"]) == {"sample", "browser", "history", "real"}
+    assert r["labels"]["browser"] == "このブラウザでの操作時間" and r["labels"]["history"] == "架空の依頼履歴から集計"
     assert r["morning"]["real"] is None  # 実利用はまだ計測していない
     s = r["morning"]["sample"]
     assert s["before"]["median_minutes"] == 32 and s["before"]["days"] == 20 and s["before"]["period"]

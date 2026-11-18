@@ -8,6 +8,7 @@ import { IconCalendar, IconChart, IconInbox, IconPlug, IconToday } from "./icons
 import { CalendarPage, RequestsPage, SettingsPage } from "./pages/Others";
 import ReportPage from "./pages/Report";
 import Today from "./pages/Today";
+import logoUrl from "./assets/logo.svg";
 
 type Page = "today" | "requests" | "calendar" | "report" | "settings";
 
@@ -30,7 +31,6 @@ export default function App() {
   const [showIntro, setShowIntro] = useState(false);
   const [tourBeats, setTourBeats] = useState<Beat[] | null>(null); // null = ツアー中でない
   const [tourStarting, setTourStarting] = useState(false);
-  const tourSpeed = Math.max(1, Number(params.get("tourSpeed")) || 1); // 確認用の早送り（通常は1）
   const [helpOn, setHelpOnState] = useState(prefs.helpOn());
   const [openTip, setOpenTip] = useState<HelpId | null>(null);
   const [howtoOpen, setHowtoOpen] = useState(false);
@@ -116,6 +116,7 @@ export default function App() {
     setHowtoOpen(false);
     setOpenTip(null);
     setTourStarting(true);
+    tracking.beforeTour();
     try {
       dataSpace.set("tour");
       await resetTourData();
@@ -175,7 +176,10 @@ export default function App() {
     <HelpContext.Provider value={{ on: helpOn, openId: openTip, setOpenId: setOpenTip }}>
       <div className="shell">
         <nav className="nav" aria-label="メイン">
-          <div className="nav-brand">W<span className="nav-brand-text">orkRelay <span>AI</span></span></div>
+          <div className="nav-brand" title="WorkRelay AI">
+            <img className="nav-logo" src={logoUrl} alt="" width={36} height={36} />
+            <span className="nav-brand-text">WorkRelay AI</span>
+          </div>
           {navItem("today", "今日やること", <IconToday />, nowCount)}
           {navItem("requests", "依頼", <IconInbox />)}
           <div data-tour="nav-more" className="nav-group">
@@ -263,7 +267,7 @@ export default function App() {
 
         {showIntro && <IntroDialog onStart={startTour} onSkip={skipIntro} />}
         {tourStarting && <div className="toast" role="status">ツアーを準備しています…</div>}
-        {tourBeats && <StoryTour beats={tourBeats} speed={tourSpeed} resetData={resetTourData} onExit={exitTour} />}
+        {tourBeats && <StoryTour beats={tourBeats} resetData={resetTourData} onExit={exitTour} />}
       </div>
     </HelpContext.Provider>
   );
@@ -306,7 +310,7 @@ function HowtoMenu({ helpOn, canTour, onTour, onToggleHelp, onClose }: {
         if (e.key === "ArrowDown") { e.preventDefault(); list[(i + 1) % list.length]?.focus(); }
         if (e.key === "ArrowUp") { e.preventDefault(); list[(i - 1 + list.length) % list.length]?.focus(); }
       }}>
-      <button role="menuitem" className="menu-item" disabled={!canTour} onClick={onTour}>5分デモツアーを再生</button>
+      <button role="menuitem" className="menu-item" disabled={!canTour} onClick={onTour}>デモツアーを再生（目安5分）</button>
       <button role="menuitemcheckbox" aria-checked={helpOn} className="menu-item menu-check" onClick={onToggleHelp}>
         画面の説明を表示 <span className={`switch${helpOn ? " on" : ""}`} aria-hidden="true">{helpOn ? "ON" : "OFF"}</span>
       </button>

@@ -6,7 +6,7 @@ type Props = { detail: RequestDetail; onChanged: (message: string) => void };
 
 const STATUS: Record<Draft["status"], { label: string; cls: string }> = {
   draft: { label: "未保存", cls: "" },
-  saved: { label: "Outlookに下書き保存済み・未送信", cls: "cyan" },
+  saved: { label: "下書きとして記録済み（デモ）・未送信", cls: "cyan" },
   sent: { label: "送信済み", cls: "ok" },
   discarded: { label: "使わない", cls: "" },
 };
@@ -83,6 +83,8 @@ function DraftCard({ draft, onChanged }: { draft: Draft; onChanged: (m: string) 
 
   const st = STATUS[draft.status];
   const isOutlook = draft.channel === "outlook";
+  // 「送信済みにする」だと実際に送るボタンに見えるため、押した結果（送信したことの記録）が分かる名前にする
+  const sentLabel = isOutlook ? "Outlookで送信したことを記録" : "Teamsで送信したことを記録";
 
   return (
     <div className="draft">
@@ -142,31 +144,36 @@ function DraftCard({ draft, onChanged }: { draft: Draft; onChanged: (m: string) 
         <div className="btn-row">
           {isOutlook ? (
             <>
-              <button className="btn primary" onClick={() => setConfirm("save")}>Outlookに下書きを保存（デモ）</button>
+              <button className="btn primary" aria-describedby={`demo-note-${draft.id}`} onClick={() => setConfirm("save")}>Outlookに下書きを保存</button>
               <button className="btn" onClick={() => run("copy", "本文をコピーしました")}>コピー</button>
             </>
           ) : (
             <button className="btn primary" onClick={() => run("copy", "本文をコピーしました。Teamsに貼り付けて送信してください")}>コピー（Teamsに貼り付け）</button>
           )}
-          <button className="btn ghost" onClick={() => setConfirm("sent")}>送信済みにする</button>
+          <button className="btn ghost" onClick={() => setConfirm("sent")}>{sentLabel}</button>
           {draft.status !== "discarded" && <button className="btn ghost" onClick={() => run("discard", "この下書きは使わないことにしました")}>使わない</button>}
         </div>
+      )}
+      {!readOnly && isOutlook && (
+        <p className="faint demo-note" id={`demo-note-${draft.id}`}>
+          「Outlookに下書きを保存」は、デモではアプリ内に記録します。実際のOutlookには保存されません。
+        </p>
       )}
 
       {confirm && (
         <ConfirmDialog
-          title={confirm === "save" ? "Outlookに下書きを保存しますか？" : "送信済みとして記録しますか？"}
+          title={confirm === "save" ? "Outlookに下書きを保存しますか？" : `${isOutlook ? "Outlook" : "Teams"}で送信したことを記録しますか？`}
           note={confirm === "save"
-            ? "デモでは、デモ内のOutlook下書きに保存します。メールは送信されません。"
-            : "実際の送信は Outlook / Teams で行ってください。デモでは、送信したことの記録だけを残します。"}
+            ? "デモではアプリ内に記録します。実際のOutlookには保存されません。メールも送信されません。"
+            : `実際の送信は ${isOutlook ? "Outlook" : "Teams"} で行ってください。ここでは、送信したことの記録だけを残します（このアプリからは送信しません）。`}
           draft={{ ...draft, body }}
-          okLabel={confirm === "save" ? "下書きに保存する" : "送信済みとして記録する"}
+          okLabel={confirm === "save" ? "下書きとして記録する" : "送信したことを記録する"}
           warn={draft.has_placeholder ? "【要記入】が残っています。内容を確認してください。" : null}
           onCancel={() => setConfirm(null)}
           onOk={async () => {
             const action = confirm;
             setConfirm(null);
-            await run(action, action === "save" ? "Outlookの下書きに保存しました（未送信）" : "送信済みとして記録しました");
+            await run(action, action === "save" ? "下書きとしてアプリ内に記録しました（実際のOutlookには保存していません・未送信）" : "送信したことを記録しました");
           }}
         />
       )}

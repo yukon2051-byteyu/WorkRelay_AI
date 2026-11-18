@@ -19,7 +19,7 @@ export type Beat = {
   scene: number; // 1〜11
   time: string; // 物語の中の時刻（導入・最後は見出し）
   sceneName: string;
-  seconds: number; // 画面が落ち着いてからの表示時間
+  seconds: number; // 読む時間の目安（自動では進まない。全体で「目安5分」を見積もるためだけに使う）
   target: string | null; // 照らす場所（null は画面中央に表示。注目枠は出さない）
   kind?: "intro" | "ending";
   text: string;
@@ -59,7 +59,7 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
 
   const can1 = ["並び順を変える（各行の「⋯」→ 上へ／下へ）", "後で確認に回す（「⋯」→ 後で確認、または H キー）", "キーボードで移動（J/K で移動、Enter で開く、Esc で閉じる）"];
   const can2 = ["別の案件として扱う（同じ依頼でなければ、つながない）", "確定期限を変える／そのままにする（つなぐ判断とは別に決める）"];
-  const can3 = ["送信済みにする（送ったことの記録。実際の送信は Outlook／Teams で）", "使わない", "新しい条件で作り直す（編集した本文は残る）"];
+  const can3 = ["Teamsで送信したことを記録（記録だけ。実際の送信は Teams で行う）", "使わない", "新しい条件で作り直す（編集した本文は残る）"];
   const can4 = ["参照の許可を取り消す／許可する", "作り直す（条件が変わったときは更新確認が出る）", "PowerPoint をダウンロードして編集"];
   const can5 = ["依頼の一覧から、どの依頼でも詳細を開く", "不足項目を手で入力する", "確認文を作る・後で確認"];
   const can6 = ["作業枠の登録を取り消す", "作業時間を入力する（未見積もりのとき）", "時間が足りないときは「速報版を先に出す」「期限を相談する」"];
@@ -69,7 +69,7 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
   return [
     // ① 導入（18秒）
     { ...s0, kind: "intro", seconds: 18, target: null,
-      text: "WorkRelay AIのデモツアーを始めます。これから約5分、青木さんの一日を見てみましょう。昨夜の連絡を整理し、返信や資料を準備して、一日の仕事を振り返ります。下のボタンで、いつでも一時停止・戻る・次へができます。",
+      text: "WorkRelay AIのデモツアーを始めます。青木さんの一日を見てみましょう（目安5分）。昨夜の連絡を整理し、返信や資料を準備して、一日の仕事を振り返ります。自動では進みません。気になった画面では足を止めて、判断の根拠まで読んでください。「次へ」「戻る」で進め、「終了」でいつでもやめられます。",
       view: () => { ctl.guide(false); ctl.page("today"); ctl.select(null); } },
 
     // ② 09:00 会社に着く（30秒）
@@ -127,7 +127,7 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
       },
       view: () => ctl.select(ids.sales, "draft") },
     { ...s3, seconds: 8, target: "[data-sec=draft] .draft .btn-row", can: can3,
-      text: "Teamsへは、コピーしてTeamsで送ります。Outlook宛ての返信なら「Outlookに下書きを保存」も使えます。コピーや保存をしても、送信はされません。",
+      text: "Teamsへは、コピーしてTeamsで送ります。Outlook宛ての返信なら「Outlookに下書きを保存」も使えます。デモではアプリ内に記録します。実際のOutlookには保存されません。コピーや保存をしても、送信はされません。",
       act: async () => {
         const d = (await api.request(ids.sales)).drafts.find((x) => x.kind === "due_adjust");
         if (d) await api.draftAction(d.id, "copy");
@@ -190,7 +190,7 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
 
     // ⑨ 17:30 今日の仕事を振り返る（24秒）
     { ...s8, seconds: 8, target: "[data-tour=rp-morning]", can: can8,
-      text: "一日の終わりに、改善レポートで振り返ります。朝の段取り時間は、サンプル値・デモ中の実測値・実利用の計測値を分けて表示します。",
+      text: "一日の終わりに、改善レポートで振り返ります。値の出どころは「サンプル値」「このブラウザでの操作時間」「架空の依頼履歴から集計」「実利用の計測値」に分けて表示します。段取り時間には、このツアーを見ている時間は含めません。",
       view: () => { ctl.select(null); ctl.page("report"); } },
     { ...s8, seconds: 8, target: "[data-tour=rp-flow]", can: can8,
       text: "どこで確認の往復が増えたか、着手できるまで何時間かかったかを、依頼の種類ごとに件数つきで見られます。" },

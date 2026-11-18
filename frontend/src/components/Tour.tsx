@@ -31,7 +31,8 @@ export function IntroDialog({ onStart, onSkip }: { onStart: () => void; onSkip: 
       <div className="dialog intro" role="dialog" aria-modal="true" aria-labelledby="intro-title" ref={ref} onKeyDown={trapTab}>
         <button className="btn ghost icon intro-close" aria-label="閉じる" onClick={onSkip}>×</button>
         <div className="intro-tag">WorkRelay AI 公開デモ</div>
-        <h2 id="intro-title">青木さんの一日を、5分で体験</h2>
+        <h2 id="intro-title">青木さんの一日を体験</h2>
+        <div className="intro-sub">目安5分・自分のペースで進めます</div>
         <p>
           WorkRelay AIは、メール・Teams・予定表から今日やるべき仕事を整理し、返信や資料の下書きを用意する業務アシスタントです。
           営業や経理から依頼を受ける青木さんの、ある水曜日を追いながら、システムが準備するところと、人が判断するところを紹介します。
@@ -80,18 +81,16 @@ function place(t: Rect | null, w: number, h: number): { top: number; left: numbe
   return fit ? { top: fit.top, left: fit.left } : { top: vh - h - m, left: clampX(t.left) };
 }
 
-export function StoryTour({ beats, speed, resetData, onExit }: {
+/** デモツアー。自動では進まず、「戻る」「次へ」「終了」で利用者が自分のペースで進める */
+export function StoryTour({ beats, resetData, onExit }: {
   beats: Beat[];
-  speed: number; // 1 = 標準（約3分）。確認用に早送りできる
   resetData: () => Promise<void>; // ツアー専用データを初期状態に戻す
   onExit: (dest: ExitDest) => void;
 }) {
   const [idx, setIdx] = useState(-1);
   const [ready, setReady] = useState(false);
-  const [paused, setPaused] = useState(false);
   const [more, setMore] = useState(false);
   const [canOpen, setCanOpen] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
   const [actError, setActError] = useState<string | null>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
@@ -99,9 +98,11 @@ export function StoryTour({ beats, speed, resetData, onExit }: {
   const runToken = useRef(0);
   const doneUpTo = useRef(-1); // ツアー専用データに act を適用済みの拍
   const beat = idx >= 0 ? beats[idx] : null;
-  const final = beat?.kind === "ending"; // エンディング：タイムバーなし、操作するまで表示
+  const final = beat?.kind === "ending"; // エンディング
   const centered = !!beat && beat.target === null; // 導入・エンディングは中央に表示し、注目枠は出さない
-  const [browsing, setBrowsing] = useState(false); // 手動で画面をスクロールして確認中
+  // 同じ場面の中での現在地（「この場面の見どころ 2 / 4」）。「次へ」で何が変わったかを伝える
+  const sceneTotal = beat ? beats.filter((b) => b.scene === beat.scene).length : 0;
+  const sceneNo = beat ? beats.slice(0, idx + 1).filter((b) => b.scene === beat.scene).length : 0;
 
   const measure = useCallback(() => {
     if (!beat) return;
@@ -114,13 +115,12 @@ export function StoryTour({ beats, speed, resetData, onExit }: {
   const pendingTo = useRef<number | null>(null);
   const goTo = useCallback(async (k: number) => {
     if (k < 0 || k >= beats.length) return;
-    if (pendingTo.current === k) return; // 自動の進行とボタンが同じ拍へ同時に移ろうとしたときは1回だけ
+    if (pendingTo.current === k) return; // 「次へ」の連打で、同じ拍へ二重に移らない
     pendingTo.current = k;
     const token = ++runToken.current;
     setReady(false);
     setMore(false);
     setCanOpen(false);
-    setElapsed(0);
     setActError(null);
     // データ操作や表示の切り替えに失敗しても、ツアーは止めずに続ける（失敗したことは説明に出す）
     try {
@@ -154,7 +154,7 @@ export function StoryTour({ beats, speed, resetData, onExit }: {
       await new Promise((r) => setTimeout(r, 80));
     }
     if (token !== runToken.current) return;
-    // 注目エリアを画面内へ移し、スクロールが止まって位置が落ち着いてから案内を出す（タイムバーもそこから進める）。
+    // 注目エリアを画面内へ移し、スクロールが止まって位置が落ち着いてから案内を出す。
     // 依頼詳細が自分の欄へスクロールするのと重なって、注目エリアが画面外に外れることがあるので、
     // 落ち着いた後に画面内かを確かめ、外れていればもう一度スクロールする（最大3回）
     const waitStable = async () => {
@@ -186,39 +186,23 @@ export function StoryTour({ beats, speed, resetData, onExit }: {
 
   useEffect(() => { goTo(0); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (ready) measure(); }, [ready, more, canOpen, measure]);
-  // 最初の拍と最後の案内では、操作ボタンにフォーカスを置く（キーボードだけで操作できるように）
+  // 最初の拍では「次へ」、最後の案内では「自由に試す」にフォーカスを置く（キーボードだけで操作できるように）
   useEffect(() => {
-    if (ready && (idx === 0 || final)) pop.current?.querySelector<HTMLButtonElement>("[data-tour-pause]")?.focus();
+    if (ready && (idx === 0 || final)) pop.current?.querySelector<HTMLButtonElement>("[data-tour-focus]")?.focus();
   }, [ready, idx, final]);
 
-  // 自動で進む。一時停止中・補足を開いている間・手動で画面を確認している間は進めない（再開すると残り時間から進む）
-  // （マウスの位置では止めない：止めたマウスの下に説明が移ってきただけで止まってしまうため）
-  const holding = paused || more || canOpen || !ready || final;
-
-  /** ツアー中のマウスホイール：下の画面をスクロールさせ、手動で確認している間は一時停止する */
+  /** ツアー中のマウスホイール：幕の下の画面をスクロールさせ、気になったところを読めるようにする */
   const onWheel = (e: ReactWheelEvent) => {
     const under = document.elementsFromPoint(e.clientX, e.clientY)
       .find((el) => !el.closest(".tour") && el instanceof HTMLElement) as HTMLElement | undefined;
     let el: HTMLElement | null = under ?? null;
     while (el && !(el.scrollHeight > el.clientHeight && /(auto|scroll)/.test(getComputedStyle(el).overflowY))) el = el.parentElement;
     el?.scrollBy({ top: e.deltaY });
-    if (!final) { setPaused(true); setBrowsing(true); }
   };
-  useEffect(() => {
-    if (holding || !beat) return;
-    const id = window.setInterval(() => setElapsed((e) => Math.min(e + 100 * speed, (beat?.seconds ?? 0) * 1000)), 100);
-    return () => window.clearInterval(id);
-  }, [holding, beat, speed]);
-  useEffect(() => {
-    // 表示が落ち着いている拍だけ、時間切れで次へ進める（切り替え中に残ったタイマーの1回で飛ばさない）
-    if (ready && !holding && beat && !final && elapsed >= beat.seconds * 1000) goTo(idx + 1);
-  }, [elapsed, beat, final, idx, goTo, ready, holding]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const onButton = (e.target as HTMLElement).closest("button, a, summary");
       if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); onExit("aborted"); }
-      else if (e.key === " " && !onButton) { e.preventDefault(); e.stopPropagation(); setPaused((p) => !p); }
       else if (e.key === "ArrowRight") { e.preventDefault(); e.stopPropagation(); goTo(idx + 1); }
       else if (e.key === "ArrowLeft") { e.preventDefault(); e.stopPropagation(); goTo(idx - 1); }
     };
@@ -231,8 +215,6 @@ export function StoryTour({ beats, speed, resetData, onExit }: {
       window.removeEventListener("scroll", measure, true);
     };
   }, [idx, goTo, measure, onExit]);
-
-  const progress = beat && !final ? Math.min(100, (elapsed / (beat.seconds * 1000)) * 100) : 100;
 
   return (
     <div className="tour" role="presentation" onWheel={onWheel}>
@@ -248,6 +230,14 @@ export function StoryTour({ beats, speed, resetData, onExit }: {
               <span id="tour-scene" className="tour-scene"><span className="tour-time">{beat.time}</span>　{CIRCLED[beat.scene - 1]} {beat.sceneName}</span>
               <span className="tour-count">場面 {beat.scene} / {SCENE_COUNT}</span>
             </div>
+            {sceneTotal > 1 && (
+              <div className="tour-step" aria-label={`この場面の見どころ ${sceneTotal}か所中 ${sceneNo}か所目`}>
+                この場面の見どころ {sceneNo} / {sceneTotal}
+                <span className="tour-dots" aria-hidden="true">
+                  {Array.from({ length: sceneTotal }, (_, i) => <span key={i} className={i < sceneNo ? "on" : ""} />)}
+                </span>
+              </div>
+            )}
 
             {final ? (
               <div id="tour-text" className="final-body">
@@ -257,7 +247,7 @@ export function StoryTour({ beats, speed, resetData, onExit }: {
                   Microsoft 365 との実連携は未実装・未検証です。ツアーで紹介した接続手順は導入時の想定です。詳しくは、接続設定の「実際の業務で使うには」にまとめています。
                 </p>
                 <div className="btn-row">
-                  <button className="btn primary" data-tour-pause onClick={() => onExit("free")}>自由に試す</button>
+                  <button className="btn primary" data-tour-focus onClick={() => onExit("free")}>自由に試す</button>
                 </div>
                 <div className="final-links" aria-label="気になった機能を開く">
                   <button className="btn" onClick={() => onExit("reply")}>返信案を見る</button>
@@ -281,25 +271,17 @@ export function StoryTour({ beats, speed, resetData, onExit }: {
                     <ul>{beat.can.map((c) => <li key={c}>{c}</li>)}</ul>
                   </details>
                 )}
-                <div className="tour-progress" aria-hidden="true"><span style={{ width: `${progress}%` }} /></div>
               </>
             )}
 
             <div className="tour-buttons">
-              {!final && (
-                <button className="btn" data-tour-pause aria-pressed={paused} onClick={() => { setPaused((p) => !p); setBrowsing(false); }}>
-                  {paused ? "▶ 再生" : "❚❚ 一時停止"}
-                </button>
-              )}
               <button className="btn" disabled={idx <= 0} onClick={() => goTo(idx - 1)}>戻る</button>
-              {!final && <button className="btn primary" onClick={() => goTo(idx + 1)}>次へ</button>}
+              {!final && <button className="btn primary" data-tour-focus onClick={() => goTo(idx + 1)}>次へ</button>}
               <span style={{ flex: 1 }} />
               <button className="btn ghost" onClick={() => onExit("aborted")}>終了</button>
             </div>
             {actError && <div className="notice warn" role="status" style={{ marginTop: 8 }}>{actError}</div>}
             {!ready && <div className="faint tour-loading" aria-live="polite">準備中…</div>}
-            {(more || canOpen) && !paused && !final && ready && <div className="faint tour-loading">閉じると続きます</div>}
-            {browsing && paused && !final && <div className="faint tour-loading">画面を確認中のため一時停止しています。「▶ 再生」で続きから進みます</div>}
           </>
         )}
       </div>

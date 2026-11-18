@@ -3,8 +3,10 @@ import { api, Report } from "../api";
 import { HelpTip } from "../help";
 
 /** 値の出どころのラベル。色だけに頼らず、必ず文字で区別する */
-function Src({ kind, text }: { kind: "sample" | "measured" | "real"; text: string }) {
-  return <span className={`src src-${kind}`}>{kind === "sample" ? "◇ " : kind === "measured" ? "● " : "○ "}{text}</span>;
+type SrcKind = "sample" | "browser" | "history" | "real";
+const MARK: Record<SrcKind, string> = { sample: "◇ ", browser: "● ", history: "■ ", real: "○ " };
+function Src({ kind, text }: { kind: SrcKind; text: string }) {
+  return <span className={`src src-${kind}`}>{MARK[kind]}{text}</span>;
 }
 
 function fmtSec(s: number) {
@@ -32,7 +34,7 @@ export default function ReportPage({ version }: { version: number }) {
     <div className="report">
       <div className="page-head">
         <h1>改善レポート<HelpTip id="report" label="改善レポート" /></h1>
-        <span className="sub">値の出どころ：<Src kind="sample" text={L.sample} />　<Src kind="measured" text={L.measured} />　<Src kind="real" text={L.real} /></span>
+        <span className="sub">値の出どころ：<Src kind="sample" text={L.sample} />　<Src kind="browser" text={L.browser} />　<Src kind="history" text={L.history} />　<Src kind="real" text={L.real} /></span>
       </div>
 
       {/* ---- 1. 朝の段取り時間 ---- */}
@@ -53,12 +55,12 @@ export default function ReportPage({ version }: { version: number }) {
             <div className="faint">{r.morning.sample.after.period}・{r.morning.sample.after.days}営業日の中央値</div>
           </div>
           <div className="tile">
-            <Src kind="measured" text="デモ中の実測値" />
-            <div className="tile-label">このデモでの段取り時間</div>
+            <Src kind="browser" text={L.browser} />
+            <div className="tile-label">このブラウザでの段取り時間</div>
             {r.morning.measured ? (
               <>
                 <div className="tile-value">{fmtSec(r.morning.measured.latest_seconds)}</div>
-                <div className="faint">直近の1回（計測 {r.morning.measured.count}回・中央値 {fmtSec(r.morning.measured.median_seconds)}）</div>
+                <div className="faint">直近の1回（計測 {r.morning.measured.count}回・中央値 {fmtSec(r.morning.measured.median_seconds)}）。デモツアーを見ている時間は含めません</div>
               </>
             ) : (
               <p className="muted" style={{ margin: "6px 0 0" }}>まだ計測していません。「今日やること」を開いて最初の操作をすると計測されます。</p>
@@ -74,8 +76,8 @@ export default function ReportPage({ version }: { version: number }) {
 
       {/* ---- 2. 確認の往復と、着手可能までの時間 ---- */}
       <section className="rp" data-tour="rp-flow">
-        <h2>確認の往復回数と、着手可能までの時間 <Src kind="measured" text="デモ中の実測値" /></h2>
-        <p className="faint">集計条件：{r.flow.condition}／期間：{r.flow.period ?? "—"}（デモの架空データと、デモ中の操作の記録）</p>
+        <h2>確認の往復回数と、着手可能までの時間 <Src kind="history" text={L.history} /></h2>
+        <p className="faint">集計条件：{r.flow.condition}／期間：{r.flow.period ?? "—"}（デモの架空の依頼履歴。デモ中の操作も反映）</p>
         <table className="table">
           <thead><tr><th>依頼種別</th><th>対象件数</th><th>初回で情報がそろった割合</th><th>確認の往復（平均）</th><th>着手可能までの時間（平均）</th></tr></thead>
           <tbody>
@@ -127,7 +129,7 @@ export default function ReportPage({ version }: { version: number }) {
 
       {/* ---- 4. 下書きの利用状況 ---- */}
       <section className="rp">
-        <h2>下書きの利用状況 <Src kind="measured" text="デモ中の実測値" /></h2>
+        <h2>下書きの利用状況 <Src kind="browser" text="このブラウザでの操作から集計" /></h2>
         <p className="faint">集計条件：{r.drafts.condition}（返信・確認文の下書き {r.drafts.total}件）</p>
         <table className="table usage">
           <tbody>
@@ -147,7 +149,7 @@ export default function ReportPage({ version }: { version: number }) {
 
       {/* ---- 5. よく抜ける項目 ---- */}
       <section className="rp" data-tour="rp-missing">
-        <h2>よく抜ける項目（初回の依頼で不足していた項目） <Src kind="measured" text="デモ中の実測値" /></h2>
+        <h2>よく抜ける項目（初回の依頼で不足していた項目） <Src kind="history" text={L.history} /></h2>
         <div className="missing-grid">
           {r.missing.map((m) => (
             <div className="tile" key={m.type}>

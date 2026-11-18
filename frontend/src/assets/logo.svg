@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="WorkRelay AI">
+  <!-- WorkRelay AI ロゴ（案01）：青紫の角丸正方形に白いW。Wの右端が右上向きの矢印へつながる。
+       サイドバーとブラウザタブ（favicon）で同じこのファイルを使う。16pxでも潰れないよう線は太め・余白は控えめ -->
+  <rect width="64" height="64" rx="14" fill="#4f3fa6"/>
+  <path d="M11.5 21 L19.5 48 L28 29.5 L36.5 48 L47.6 21.8" fill="none" stroke="#fff" stroke-width="7.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M53.5 9.5 L55.2 27.4 L39.6 19.6 Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
+</svg>

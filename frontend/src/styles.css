@@ -2,7 +2,7 @@
  * 配色は仕様書9章の初期値をもとに調整。色の役割（必ず文字やアイコンと併用する）：
  *   青紫  --accent ：選択中の行の左ライン、その場で進める主ボタン
  *   シアン --cyan  ：次の行動・作業予定（「次にやること」、予定表の作業枠）
- *   アンバー --warn：判断待ち・前倒しの相談・期限の変更候補
+ *   アンバー --warn：判断待ち・前倒しの相談・期限の変更候補・「要確認」の件数
  *   ミント --ok    ：着手可能・準備済み
  *   コーラル --danger：期限超過・同期失敗・要確認の連絡
  *   連絡元：Outlook＝ブルー、Teams＝ライラック
@@ -10,11 +10,18 @@
  *
  * テーマ：<html data-theme="light|dark">。初期値はライト（index.html で、保存済みのテーマを最初の描画前に適用）。
  * ライト … 柔らかいオフホワイトの背景、白に近い読む面、濃いスレートの文字。状態は「薄い面＋濃い文字」で示す
+ *          サイドバー・「まずこれ」・詳細ヘッダーなど、場所ごとに淡い面の色を分けて境界を見えやすくする
  * ダーク … 従来の配色
  */
 :root, :root[data-theme="light"] {
   --bg: #f5f6f8;
-  --nav: #edf0f5;
+  --nav: #e6edf7;          /* 青みのあるスレート */
+  --nav-selected: #d9d4f7; /* 選択中：青紫の面＋濃い文字 */
+  --brand-text: #1c2452;   /* アプリ名：濃いネイビー */
+  --top-bg: #e9e6fb;       /* 「まずこれ」：淡い青紫 */
+  --top-border: #cdc6f1;
+  --top-btn: #3f3494;      /* 「まずこれ」の今すぐ押すボタン：濃い青紫 */
+  --detail-head-bg: #e6eefa; /* 右の詳細のヘッダー：淡い青 */
   --surface: #fcfcfd;
   --surface-2: #f0f2f6;
   --surface-top: #ffffff;
@@ -31,9 +38,9 @@
   --accent-bg: #eceeff;
   --on-accent: #ffffff;
   --cyan: #157585;
-  --cyan-bg: #e3f2f4;
-  --warn: #78480d;
-  --warn-bg: #fff1d6;
+  --cyan-bg: #e4f3f2;  /* 「今日の空き」・作業枠・予定表で共通 */
+  --warn: #6b3f0b;     /* 濃い茶色 */
+  --warn-bg: #fff1d8;  /* 「要確認」・期限の変更候補（前倒しの相談） */
   --ok: #236148;
   --ok-bg: #e4f3ec;
   --danger: #a3332b;
@@ -56,6 +63,12 @@
 :root[data-theme="dark"] {
   --bg: #14151a;
   --nav: #1b1c23;
+  --nav-selected: rgba(165, 170, 255, 0.14);
+  --brand-text: #f3f4fa;
+  --top-bg: #292b38;
+  --top-border: #373a47;
+  --top-btn: #a5aaff;
+  --detail-head-bg: #22242d;
   --surface: #22242d;
   --surface-2: #2a2c37;
   --surface-top: #292b38;
@@ -101,14 +114,15 @@ dl, dd { margin: 0; }
 
 /* ---- 全体の枠：左ナビ ｜ 中央 ｜ 右の詳細 ---- */
 /* overflow: clip … 外枠自体はスクロールさせない（hidden だと、欄へ移動するスクロールで画面全体がずれる） */
-.shell { display: grid; grid-template-columns: 216px 1fr; grid-template-rows: minmax(0, 1fr); height: 100vh; overflow: clip; }
+.shell { display: grid; grid-template-columns: 236px 1fr; grid-template-rows: minmax(0, 1fr); height: 100vh; overflow: clip; }
 .main, .workspace { overflow: clip; }
 .nav { background: var(--nav); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 16px 10px; gap: 4px; min-width: 0; }
-.nav-brand { font-weight: 700; font-size: 15px; padding: 4px 10px 16px; letter-spacing: 0.02em; }
-.nav-brand span { color: var(--accent); }
+.nav-brand { display: flex; align-items: center; gap: 10px; padding: 2px 6px 18px; }
+.nav-logo { width: 36px; height: 36px; flex: none; display: block; }
+.nav-brand-text { font-size: 24px; font-weight: 700; line-height: 1.2; color: var(--brand-text); white-space: nowrap; letter-spacing: -0.01em; }
 .nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; border: 0; background: none; text-align: left; cursor: pointer; color: var(--text-sub); width: 100%; }
 .nav-item:hover { background: var(--surface); color: var(--text); }
-.nav-item[aria-current="page"] { background: var(--accent-bg); color: var(--text); box-shadow: inset 3px 0 0 var(--accent); }
+.nav-item[aria-current="page"] { background: var(--nav-selected); color: var(--text); box-shadow: inset 3px 0 0 var(--accent); }
 .nav-item .count { margin-left: auto; font-size: 12px; color: var(--text-sub); }
 .nav-spacer { flex: 1; }
 .nav-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -150,7 +164,7 @@ dl, dd { margin: 0; }
 @media (max-width: 1180px) {
   .shell { grid-template-columns: 60px 1fr; }
   .nav-label, .nav-brand-text, .nav-item .count { display: none; }
-  .nav-brand { padding: 4px 0 16px; text-align: center; }
+  .nav-brand { padding: 2px 0 18px; justify-content: center; }
   .nav-item { justify-content: center; padding: 10px 0; }
   .nav-guide-link { padding: 2px 0; text-align: center; }
   .nav-short { display: inline; font-size: 13px; }
@@ -174,7 +188,10 @@ dl, dd { margin: 0; }
 .stat-value { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .stat-btn { cursor: pointer; text-align: left; }
 .stat-btn:hover { border-color: var(--border-strong); }
-.stat-btn.danger .stat-label, .stat-btn.danger .stat-value { color: var(--danger); }
+.stat-btn.warn { background: var(--warn-bg); border-color: transparent; }
+.stat-btn.warn .stat-label, .stat-btn.warn .stat-value { color: var(--warn); }
+.stat.free { background: var(--cyan-bg); border-color: transparent; }
+.stat.free .stat-label, .stat.free .stat-value { color: var(--cyan); }
 .breakdown-toggle { align-self: center; font-size: 13px; }
 .breakdown { margin-top: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; }
 .breakdown-counts { display: flex; flex-wrap: wrap; gap: 4px 20px; }
@@ -205,9 +222,10 @@ dl, dd { margin: 0; }
 
 /* 最優先（まずこれ）：青紫の細い左ライン、少し明るい面、強いタイトル。
    左に「やること・理由」、右に「期限」とそのすぐ下の操作（判断してそのまま押せる） */
-.card-top { grid-template-columns: minmax(0, 1fr) 248px; background: var(--surface-top); border-color: var(--border); box-shadow: inset 3px 0 0 var(--accent); padding: 12px 16px 14px 18px; align-items: stretch; column-gap: 20px; }
-.card-top:hover { background: var(--surface-top); border-color: var(--border-strong); }
-.card-top[aria-selected="true"] { background: var(--surface-selected); border-color: var(--border-strong); box-shadow: inset 3px 0 0 var(--accent); }
+.card-top { grid-template-columns: minmax(0, 1fr) 248px; background: var(--top-bg); border-color: var(--top-border); box-shadow: inset 3px 0 0 var(--accent); padding: 12px 16px 14px 18px; align-items: stretch; column-gap: 20px; }
+.card-top:hover { background: var(--top-bg); border-color: var(--border-strong); }
+.card-top .card-buttons .btn.primary { background: var(--top-btn); border-color: var(--top-btn); }
+.card-top[aria-selected="true"] { background: var(--top-bg); border-color: var(--border-strong); box-shadow: inset 3px 0 0 var(--accent); }
 .card-top .card-action { font-size: 18px; font-weight: 700; margin-top: 2px; }
 .card-reason { color: var(--text-reason); font-size: 13.5px; margin: 4px 0 0; line-height: 1.65; }
 .card-side { display: flex; flex-direction: column; justify-content: center; gap: 10px; padding-left: 18px; border-left: 1px solid var(--border); }
@@ -221,6 +239,7 @@ dl, dd { margin: 0; }
 .card-due dd { color: var(--text); white-space: nowrap; }
 .card-due.two > div + div { margin-top: 3px; }
 .card-due .due-wish dd { color: var(--warn); font-weight: 600; }
+.due-note { background: var(--warn-bg); color: var(--warn); border-radius: 4px; padding: 0 6px; }
 .card-due .overdue dd { color: var(--danger); font-weight: 600; }
 .due-note { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; font-size: 12px; font-weight: 400; }
 
@@ -275,7 +294,7 @@ mark.hl { background: var(--warn-bg); color: var(--text); border-bottom: 1px sol
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ---- 詳細ペイン ---- */
-.detail-head { position: sticky; top: 0; background: var(--surface); padding: 14px 20px 10px; border-bottom: 1px solid var(--border); z-index: 1; }
+.detail-head { position: sticky; top: 0; background: var(--detail-head-bg); padding: 14px 20px 10px; border-bottom: 1px solid var(--border); z-index: 1; }
 .detail-head-row { display: flex; align-items: center; gap: 8px; }
 .detail-head h2 { font-size: 17px; line-height: 1.4; font-weight: 700; }
 .status-actions { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
@@ -301,7 +320,8 @@ mark.hl { background: var(--warn-bg); color: var(--text); border-bottom: 1px sol
 .due-grid dt { color: var(--text-sub); }
 .due-grid dd { margin: 0; font-variant-numeric: tabular-nums; }
 .due-grid .committed { color: var(--text); font-weight: 700; }
-.due-grid .candidate { color: var(--warn); font-weight: 600; }
+.due-grid .candidate { color: var(--warn); font-weight: 600; background: var(--warn-bg); border-radius: 4px; padding: 1px 6px; }
+.due-grid .candidate .note { color: var(--warn); }
 .due-grid .slot { color: var(--cyan); font-weight: 600; }
 .due-grid .note { color: var(--text-faint); font-weight: 400; font-size: 12px; margin-left: 6px; }
 .notice { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-top: 10px; }
@@ -350,7 +370,8 @@ mark.hl { background: var(--warn-bg); color: var(--text); border-bottom: 1px sol
 .rp h2 { font-size: 15px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .rp > .faint { margin: 0 0 8px; }
 .src { font-size: 11.5px; font-weight: 600; border-radius: 4px; padding: 0 6px; border: 1px solid var(--border-strong); color: var(--text-sub); white-space: nowrap; }
-.src-measured { color: var(--cyan); border-color: var(--cyan); }
+.src-browser { color: var(--cyan); border-color: var(--cyan); }
+.src-history { color: var(--accent); border-color: var(--accent); }
 .src-real { border-style: dashed; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
 .tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
@@ -466,7 +487,7 @@ a.btn { text-decoration: none; }
 .tour-count { font-size: 12px; color: var(--cyan); font-weight: 700; }
 .tour-buttons { display: flex; gap: 6px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
 /* 3分デモツアー：説明ポップアップは「読む場所」。注目エリア（シアンの枠）とは色・形で区別する
-   一段明るい青紫寄りのチャコール、落ち着いた境界線、シアンは使わない。青紫は「次へ」とタイムバーだけ */
+   一段明るい青紫寄りのチャコール、落ち着いた境界線、シアンは使わない。青紫は「次へ」と見どころの位置だけ */
 .tour-pop.story { width: 400px; background: var(--pop-bg); border: 1px solid var(--pop-border); border-top: 1px solid var(--pop-border); border-radius: 10px; padding: 14px 18px 14px; box-shadow: 0 14px 40px var(--shadow); }
 .tour-pop.final { width: min(560px, calc(100vw - 24px)); }
 .tour-dim { position: fixed; inset: 0; background: var(--tour-scrim); }
@@ -481,13 +502,16 @@ a.btn { text-decoration: none; }
 .tour-more summary { cursor: pointer; color: var(--accent); font-size: 12.5px; }
 .tour-more ul { margin: 4px 0 0; padding-left: 18px; }
 .tour-more p { margin: 4px 0 0; }
-.tour-progress { height: 3px; background: var(--surface); border-radius: 2px; margin-top: 10px; overflow: hidden; }
-.tour-progress > span { display: block; height: 100%; background: var(--accent); transition: width 0.1s linear; }
+/* 同じ場面の中での現在地（「この場面の見どころ 2 / 4」） */
+.tour-step { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 12px; color: var(--text-sub); }
+.tour-dots { display: inline-flex; gap: 4px; }
+.tour-dots > span { width: 6px; height: 6px; border-radius: 50%; border: 1px solid var(--text-faint); }
+.tour-dots > span.on { background: var(--accent); border-color: var(--accent); }
+.intro-sub { color: var(--text-sub); font-size: 13px; margin: -2px 0 10px; }
 .tour-loading { margin-top: 6px; }
 .final-body h2 { font-size: 18px; margin: 8px 0 6px; }
 .final-body p { color: var(--text-reason); margin: 0 0 8px; font-size: 13.5px; line-height: 1.7; }
 .final-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-@media (prefers-reduced-motion: reduce) { .tour-progress > span { transition: none; } }
 /* OS で「動きを減らす」設定をしている人には、移動やアニメーションをしない */
 @media (prefers-reduced-motion: reduce) {
   .intro, .intro-overlay, .tour-pop.shown, .help-pop { animation: none; }
@@ -497,3 +521,4 @@ a.btn { text-decoration: none; }
 /* 画面には出さず、読み上げソフトにだけ伝えるラベル */
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--surface-2); border: 1px solid var(--border); padding: 8px 16px; border-radius: 8px; font-size: 13px; z-index: 10; box-shadow: 0 6px 24px var(--shadow); }
+.demo-note { margin: 6px 0 0; font-size: 12px; }

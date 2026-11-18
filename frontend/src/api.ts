@@ -233,6 +233,11 @@ export const tracking = {
     fetch("/api/usage", { method: "POST", headers: { ...baseHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify({ session_id: usage.session, kind: "first_action", request_id: requestId ?? null }) }).catch(() => {});
   },
+  /** デモツアーを始める：まだ最初の操作をしていなければ計測をやり直す（ツアーを見ている時間を段取り時間に含めない）。
+   *  ツアー後に「今日やること」へ戻った時点から、改めて計測する */
+  beforeTour() {
+    if (!usage.acted) this.restart();
+  },
   /** デモをやり直したら、計測も最初から */
   restart() {
     usage.session = Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -290,7 +295,7 @@ export const api = {
 };
 
 export type Report = {
-  labels: { sample: string; measured: string; real: string };
+  labels: { sample: string; browser: string; history: string; real: string };
   morning: {
     measured: { count: number; latest_seconds: number; median_seconds: number; condition: string } | null;
     sample: {
