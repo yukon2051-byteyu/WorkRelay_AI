@@ -118,6 +118,12 @@ export function StoryTour({ beats, resetData, onExit }: {
   const breakNo = beats.slice(0, idx + 1).filter((b) => b.kind === "break").length;
   const centered = !!beat && beat.target === null; // 導入・エンディングは中央に表示し、注目枠は出さない
   // 同じ場面の中での現在地（「この場面の見どころ 2 / 4」）。「次へ」で何が変わったかを伝える
+  // 場面単位の移動（「前の場面へ」「次の場面へ」）。小休止は、それだけで1つの区切りとして扱う
+  const unitKey = (b: Beat, i: number) => (b.kind === "break" ? `break-${i}` : `scene-${b.scene}`);
+  const unitStarts = beats.map((b, i) => i).filter((i) => i === 0 || unitKey(beats[i], i) !== unitKey(beats[i - 1], i - 1));
+  const curUnit = unitStarts.filter((s) => s <= idx).length - 1; // 今いる区切りの番号
+  const prevScene = curUnit > 0 ? unitStarts[curUnit - 1] : -1;
+  const nextScene = curUnit >= 0 && curUnit + 1 < unitStarts.length ? unitStarts[curUnit + 1] : -1;
   const inScene = (b: Beat) => !!beat && b.scene === beat.scene && b.kind !== "break";
   const sceneTotal = beat && !isBreak ? beats.filter(inScene).length : 0;
   const sceneNo = beat && !isBreak ? beats.slice(0, idx + 1).filter(inScene).length : 0;
@@ -226,6 +232,8 @@ export function StoryTour({ beats, resetData, onExit }: {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); onExit("aborted"); }
+      else if (e.key === "ArrowRight" && e.shiftKey) { e.preventDefault(); e.stopPropagation(); if (nextScene >= 0) goTo(nextScene); }
+      else if (e.key === "ArrowLeft" && e.shiftKey) { e.preventDefault(); e.stopPropagation(); if (prevScene >= 0) goTo(prevScene); }
       else if (e.key === "ArrowRight") { e.preventDefault(); e.stopPropagation(); goTo(idx + 1); }
       else if (e.key === "ArrowLeft") { e.preventDefault(); e.stopPropagation(); goTo(idx - 1); }
     };
@@ -237,7 +245,7 @@ export function StoryTour({ beats, resetData, onExit }: {
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, true);
     };
-  }, [idx, goTo, measure, onExit]);
+  }, [idx, goTo, measure, onExit, prevScene, nextScene]);
 
   return (
     <div className="tour" role="presentation" onWheel={onWheel}>
@@ -265,7 +273,12 @@ export function StoryTour({ beats, resetData, onExit }: {
               ) : (
                 <span id="tour-scene" className="tour-scene"><span className="tour-time">{beat.time}</span>　{CIRCLED[beat.scene - 1]} {beat.sceneName}</span>
               )}
-              <span className="tour-count">{isBreak ? `場面 ${beat.scene} / ${SCENE_COUNT} まで` : `場面 ${beat.scene} / ${SCENE_COUNT}`}</span>
+              {/* 場面ごと飛ばす・戻る（‹ ›。Shift＋← → でも操作できる）。説明の高さを増やさないよう、場面番号の両側に置く */}
+              <span className="tour-count tour-jump">
+                <button className="jump-btn" aria-label="前の場面へ" title="前の場面へ（Shift＋←）" disabled={prevScene < 0} onClick={() => goTo(prevScene)}>‹</button>
+                {isBreak ? `場面 ${beat.scene} / ${SCENE_COUNT} まで` : `場面 ${beat.scene} / ${SCENE_COUNT}`}
+                <button className="jump-btn" aria-label="次の場面へ" title="次の場面へ（Shift＋→）" disabled={nextScene < 0} onClick={() => goTo(nextScene)}>›</button>
+              </span>
             </div>
             {sceneTotal > 1 && (
               <div className="tour-step" aria-label={`この場面の見どころ ${sceneTotal}か所中 ${sceneNo}か所目`}>

@@ -532,3 +532,10 @@ a.btn { text-decoration: none; }
 .break-body ul { margin: 0; padding-left: 1.2em; color: var(--text-reason); font-size: 13.5px; line-height: 1.7; }
 .break-points li::marker { color: var(--accent); }
 .break-next { margin: 12px 0 0; padding-top: 8px; border-top: 1px solid var(--border); color: var(--text-sub); font-size: 13px; }
+.nav-reset { margin-top: 2px; }
+.nav-reset:disabled { opacity: 0.5; cursor: default; }
+/* ツアー：場面ごとの移動（場面番号の両側の ‹ ›。「戻る」「次へ」より控えめ） */
+.tour-jump { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+.jump-btn { background: none; border: 1px solid transparent; border-radius: 4px; width: 22px; height: 22px; padding: 0; font-size: 16px; line-height: 1; color: var(--text-sub); cursor: pointer; }
+.jump-btn:hover:not(:disabled) { border-color: var(--border-strong); color: var(--accent); }
+.jump-btn:disabled { opacity: 0.35; cursor: default; }

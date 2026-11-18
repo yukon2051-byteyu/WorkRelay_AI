@@ -33,6 +33,8 @@ export default function App() {
   const [tourStarting, setTourStarting] = useState(false);
   const [openTip, setOpenTip] = useState<HelpId | null>(null);
   const tourBtn = useRef<HTMLButtonElement>(null); // ヘッダーの「デモツアーを体験する」
+  const [resetAsk, setResetAsk] = useState(false); // 「デモを初期状態に戻す」の確認
+  const resetBtn = useRef<HTMLButtonElement>(null);
 
   const load = useCallback(async () => {
     try {
@@ -85,6 +87,21 @@ export default function App() {
   useEffect(() => {
     if (home && page === "today" && !showIntro && !tourBeats) tracking.homeOpened();
   }, [home, page, showIntro, tourBeats]);
+
+  /** デモのデータを初期状態に戻す（このブラウザでの操作をすべて取り消す）。押した結果がはっきり分かるよう、確認と完了の通知を出す */
+  const resetDemo = async () => {
+    setResetAsk(false);
+    try {
+      tracking.restart();
+      await api.resetDemo();
+      await api.ingest();
+      setSelected(null);
+      setPage("today");
+      await changed("デモを初期状態に戻しました。関連付け・下書きの編集・作業枠の登録などは、すべて最初の状態です");
+    } catch (e) {
+      setToast(`初期状態に戻せませんでした：${(e as Error).message}`);
+    }
+  };
 
   // ---- 3分デモツアー。ツアー中はツアー専用のデータ領域を使い、利用者のデモのデータを変えない
   const refresh = useCallback(async () => {
@@ -178,6 +195,14 @@ export default function App() {
             <span className="nav-label">実際の業務で使うには</span>
             <span className="nav-short" aria-hidden="true">?</span>
           </button>
+          {/* 目立たない場所に置く：自分の操作をやり直したいときだけ使う */}
+          {mode === "demo" && (
+            <button ref={resetBtn} className="nav-guide-link nav-reset" aria-label="デモを初期状態に戻す" title="デモを初期状態に戻す"
+              disabled={!!tourBeats} onClick={() => setResetAsk(true)}>
+              <span className="nav-label">デモを初期状態に戻す</span>
+              <span className="nav-short" aria-hidden="true">↺</span>
+            </button>
+          )}
         </nav>
 
         <div className="main">
@@ -243,6 +268,7 @@ export default function App() {
 
         {showIntro && <IntroDialog onStart={startTour} onSkip={skipIntro} />}
         {tourStarting && <div className="toast" role="status">ツアーを準備しています…</div>}
+        {resetAsk && <ResetDialog onOk={resetDemo} onCancel={() => { setResetAsk(false); resetBtn.current?.focus(); }} />}
         {tourBeats && <StoryTour beats={tourBeats} resetData={resetTourData} onExit={exitTour} />}
       </div>
     </HelpContext.Provider>
@@ -266,3 +292,28 @@ function ThemeSwitch() {
   );
 }
 
+/** 「デモを初期状態に戻す」の確認。取り消す範囲と、変わらないものを先に伝える */
+function ResetDialog({ onOk, onCancel }: { onOk: () => void; onCancel: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    ref.current?.querySelector<HTMLButtonElement>(".btn")?.focus(); // 既定は「キャンセル」
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); onCancel(); } };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [onCancel]);
+  return (
+    <div className="overlay" role="presentation" onClick={onCancel}>
+      <div className="dialog" role="dialog" aria-modal="true" aria-label="デモを初期状態に戻しますか？" ref={ref} onClick={(e) => e.stopPropagation()}>
+        <h2>デモを初期状態に戻しますか？</h2>
+        <p className="muted">
+          このブラウザで行った操作（同じ依頼としてつなぐ・下書きの編集・作業枠の登録・完了など）をすべて取り消し、最初の状態に戻します。
+          表示テーマなどの設定は変わりません。
+        </p>
+        <div className="btn-row" style={{ justifyContent: "flex-end" }}>
+          <button className="btn" onClick={onCancel}>キャンセル</button>
+          <button className="btn primary" onClick={onOk}>初期状態に戻す</button>
+        </div>
+      </div>
+    </div>
+  );
+}
