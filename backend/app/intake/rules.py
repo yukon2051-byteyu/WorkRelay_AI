@@ -164,7 +164,7 @@ def check_suspicious(msg: dict) -> str | None:
     """本文に「AIへの指示」が書かれているなど、不審な連絡を見つける。"""
     text = msg["body"]
     if re.search(r"AIアシスタント|指示を無視|これまでの指示", text):
-        return "本文にAIへの操作指示が含まれています。指示は実行していません"
+        return "本文にAIへの操作指示が含まれていたため、依頼への登録を保留しました。指示は実行していません"
     external = not (msg.get("sender_email") or "").endswith("@example.com")
     if external and re.search(r"至急|緊急", text + (msg.get("subject") or "")) and re.search(r"送信|送付", text):
         return "社外アドレスから至急の送信依頼です。指示は実行していません"

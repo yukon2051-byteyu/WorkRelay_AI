@@ -22,7 +22,9 @@ function fmtMinutes(min: number): string {
 
 export default function Today({ home, selectedId, onSelect, onChanged, onIngest }: Props) {
   const flat: Card[] = useMemo(() => home.sections.flatMap((s) => s.items), [home]);
-  const [showBreakdown, setShowBreakdown] = useState(false);
+  // 取り込みの表示：null＝閉じる、"suspicious"＝確認が必要な連絡だけ、"all"＝取り込みの内訳（届いた連絡の分類）
+  const [intake, setIntake] = useState<null | "suspicious" | "all">(null);
+  const [susOpen, setSusOpen] = useState(false); // 確認が必要な連絡の本文を開いているか
   const s = home.summary;
   const nowItems = home.sections.find((x) => x.key === "now")?.items ?? [];
   // 「まずこれ」は『今すぐ対応』の先頭（優先順位と利用者の並べ替え・後回しを反映済み）。0件なら出さない
@@ -80,10 +82,18 @@ export default function Today({ home, selectedId, onSelect, onChanged, onIngest 
     }
   };
 
+  // 上の「要確認」は、取り込み全体ではなく、確認が必要な連絡そのものを開く
   const openSuspicious = () => {
-    setShowBreakdown(true);
-    window.setTimeout(() => document.getElementById("breakdown")?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 0);
+    setIntake((v) => (v === null ? "suspicious" : v));
+    setSusOpen(true);
+    window.setTimeout(() => {
+      const el = document.getElementById("suspicious");
+      el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      el?.querySelector<HTMLElement>("h3")?.focus();
+    }, 0);
   };
+  const suspicious = home.fyi.filter((m) => m.category === "suspicious");
+  const noAction = home.fyi.filter((m) => m.category === "no_action");
 
   if (flat.length === 0 && s.new_messages === 0) {
     return (
@@ -104,12 +114,12 @@ export default function Today({ home, selectedId, onSelect, onChanged, onIngest 
         </div>
         <div className="scope">前回の確認（{fmtDue(home.last_checked)}）以降の連絡と、持ち越しの依頼が対象</div>
         <div className="stats">
-          <div className="stat">
-            <span className="stat-label">今すぐ対応</span>
+          <div className="stat" title="持ち越しの依頼も含めた、今すぐ対応する仕事の数">
+            <span className="stat-label">今すぐ対応の仕事</span>
             <span className="stat-value">{nowItems.length}件</span>
           </div>
-          <button className={`stat stat-btn${s.suspicious ? " warn" : ""}`} onClick={openSuspicious}
-            aria-label={`要確認 ${s.suspicious}件。取り込みの内訳で確認する`}>
+          <button className={`stat stat-btn${s.suspicious ? " warn" : ""}`} onClick={openSuspicious} disabled={!s.suspicious}
+            aria-label={`要確認 ${s.suspicious}件。確認が必要な連絡を開く`} aria-controls="suspicious">
             <span className="stat-label">{s.suspicious > 0 && <IconWarn size={12} />} 要確認</span>
             <span className="stat-value">{s.suspicious}件</span>
           </button>
@@ -117,35 +127,66 @@ export default function Today({ home, selectedId, onSelect, onChanged, onIngest 
             <span className="stat-label">今日の空き</span>
             <span className="stat-value">{fmtMinutes(freeMinutes)}</span>
           </div>
-          <button className="btn ghost breakdown-toggle" data-tour="breakdown-toggle" aria-expanded={showBreakdown} aria-controls="breakdown"
-            onClick={() => setShowBreakdown((v) => !v)}>
-            取り込みの内訳 {showBreakdown ? "▴" : "▾"}
+          <button className="btn ghost breakdown-toggle" data-tour="breakdown-toggle" aria-expanded={intake === "all"} aria-controls="breakdown"
+            onClick={() => { setIntake((v) => (v === "all" ? null : "all")); setSusOpen(false); }}>
+            取り込みの内訳 {intake === "all" ? "▴" : "▾"}
           </button>
         </div>
 
-        {showBreakdown && (
+        {intake && (
           <div className="breakdown" id="breakdown">
-            <dl className="breakdown-counts">
-              <div><dt>新着</dt><dd>{s.new_messages}件</dd></div>
-              <div><dt>新規依頼</dt><dd>{s.new_requests}件</dd></div>
-              <div><dt>回答</dt><dd>{s.answers}件</dd></div>
-              <div><dt>条件変更・関連候補</dt><dd>{s.changes}件</dd></div>
-              <div><dt>対応不要</dt><dd>{s.no_action}件</dd></div>
-              <div><dt>要確認</dt><dd>{s.suspicious}件</dd></div>
-            </dl>
-            <div className="faint" style={{ margin: "8px 0 4px" }}>依頼として扱っていない連絡（要確認・対応不要）</div>
-            {home.fyi.map((m) => (
-              <div className="fyi-row" key={m.id}>
-                <span>{m.category === "suspicious"
-                  ? <span className="badge danger"><IconWarn size={12} />要確認</span>
-                  : <span className="badge">対応不要</span>}</span>
-                <span className="faint" style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
-                  <ChannelIcon channel={m.channel} />{CHANNEL[m.channel]}・{m.sender_name}
-                </span>
-                <span>{m.subject ?? m.snippet}</span>
-                <span className="reason">{m.reason}</span>
-              </div>
-            ))}
+            {/* 取り込みの内訳：前回の確認以降に届いた連絡が、どう分類されたか（「今すぐ対応の仕事」は持ち越しも含むので別の数） */}
+            {intake === "all" && (
+              <>
+                <div className="breakdown-title">前回の確認以降に届いた連絡　<b>{s.new_messages}件</b></div>
+                <dl className="breakdown-counts">
+                  <div><dt>新規依頼</dt><dd>{s.new_requests}件</dd></div>
+                  <div><dt>回答</dt><dd>{s.answers}件</dd></div>
+                  <div><dt>条件変更・関連候補</dt><dd>{s.changes}件</dd></div>
+                  <div><dt>対応不要</dt><dd>{s.no_action}件</dd></div>
+                  <div><dt>要確認</dt><dd>{s.suspicious}件</dd></div>
+                </dl>
+              </>
+            )}
+
+            {/* 人の判断が残っている連絡。対応不要とは分けて、先に見せる */}
+            {suspicious.length > 0 && (
+              <section className="sus-block" id="suspicious" aria-labelledby="sus-title">
+                <h3 id="sus-title" tabIndex={-1}><IconWarn size={14} /> 確認が必要な連絡　{suspicious.length}件</h3>
+                {suspicious.map((m) => (
+                  <div className="sus-item" key={m.id}>
+                    <div className="fyi-subject">{m.subject ?? m.snippet}</div>
+                    <div className="fyi-meta"><ChannelIcon channel={m.channel} />{CHANNEL[m.channel]} · {m.sender_name}</div>
+                    <p className="fyi-reason">{m.reason}</p>
+                    <button className="btn" aria-expanded={susOpen} aria-controls={`sus-body-${m.id}`} onClick={() => setSusOpen((v) => !v)}>
+                      {susOpen ? "元の連絡を閉じる" : "元の連絡を確認"}
+                    </button>
+                    {susOpen && (
+                      <div className="sus-body" id={`sus-body-${m.id}`}>
+                        <div className="faint">元の連絡（表示しているだけで、本文の指示は実行しません）</div>
+                        <pre>{m.body ?? m.snippet}</pre>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </section>
+            )}
+
+            {/* 今は手を付けなくてよい連絡。折りたたんでおき、必要なときだけ開く */}
+            {intake === "all" && noAction.length > 0 && (
+              <details className="noaction">
+                <summary>対応不要の連絡　{noAction.length}件</summary>
+                {noAction.map((m) => (
+                  <div className="fyi-row" key={m.id}>
+                    <div className="fyi-subject">{m.subject ?? m.snippet}</div>
+                    <div className="fyi-meta"><ChannelIcon channel={m.channel} />{CHANNEL[m.channel]} · {m.sender_name}<span className="fyi-reason-inline">　{m.reason}</span></div>
+                  </div>
+                ))}
+              </details>
+            )}
+            {intake === "suspicious" && (
+              <button className="link-btn" onClick={() => setIntake("all")}>取り込みの内訳（{s.new_messages}件の分類）を見る</button>
+            )}
           </div>
         )}
       </header>

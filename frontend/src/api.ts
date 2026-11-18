@@ -43,6 +43,7 @@ export type FyiMessage = {
   sender_name: string;
   subject: string | null;
   snippet: string;
+  body?: string; // 要確認の連絡だけ（人が中身を確かめるため。表示するだけで、指示は実行しない）
   received_at: string;
   category: "no_action" | "suspicious";
   reason: string;

@@ -313,7 +313,9 @@ def build_home(conn, source: str, now: datetime, last_checked: datetime) -> dict
         "ORDER BY c.category DESC, m.received_at", (source, last_checked.isoformat()))]
     for m in fyi:
         m["snippet"] = _snippet(m["body"])
-        del m["body"]
+        # 要確認の連絡だけ本文を返す（人が「元の連絡を確認」で中身を見て判断するため）。表示するだけで、指示は実行しない
+        if m["category"] != "suspicious":
+            del m["body"]
 
     counts = dict(conn.execute(
         "SELECT c.category, COUNT(*) FROM messages m JOIN message_classes c ON c.message_id = m.id "

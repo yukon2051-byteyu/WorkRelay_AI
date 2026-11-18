@@ -161,3 +161,13 @@ def test_no_free_time_when_fully_booked():
     now = datetime(2026, 11, 18, 9, 0, tzinfo=JST)
     events = [{"start_at": "2026-11-18T09:00:00+09:00", "end_at": "2026-11-18T18:00:00+09:00"}]
     assert free_slots(events, now) == []
+
+
+def test_suspicious_message_has_body_for_review_but_no_action_does_not(client):
+    """要確認の連絡は、人が中身を確かめられるよう本文を返す。対応不要は抜粋だけ。"""
+    client.post("/api/ingest")
+    fyi = _home(client)["fyi"]
+    sus = [m for m in fyi if m["category"] == "suspicious"]
+    rest = [m for m in fyi if m["category"] == "no_action"]
+    assert len(sus) == 1 and sus[0]["body"] and "保留" in sus[0]["reason"]
+    assert rest and all("body" not in m for m in rest)

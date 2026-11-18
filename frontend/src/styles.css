@@ -449,8 +449,26 @@ a.btn { text-decoration: none; }
 .error-box { background: var(--danger-bg); border-radius: var(--radius); padding: 14px 16px; }
 .muted { color: var(--text-sub); }
 .faint { color: var(--text-faint); font-size: 12px; }
-.fyi-row { display: grid; grid-template-columns: 76px 150px 1fr; gap: 10px; padding: 6px 4px; border-top: 1px solid var(--border); align-items: baseline; }
-.fyi-row .reason { grid-column: 3; color: var(--text-faint); font-size: 12px; }
+/* 取り込みの内訳：件名 → 送信元 → 分類した理由 の順に、左から読めるようにまとめる */
+.breakdown-title { font-size: 13.5px; color: var(--text-reason); margin-bottom: 4px; }
+.breakdown-title b { color: var(--text); font-size: 15px; }
+.fyi-subject { font-weight: 600; color: var(--text); }
+.fyi-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 12.5px; color: var(--text-sub); margin-top: 2px; }
+.fyi-reason, .fyi-reason-inline { color: var(--text-faint); font-size: 12.5px; }
+.fyi-reason { margin: 4px 0 8px; }
+.fyi-row { padding: 8px 4px; border-top: 1px solid var(--border); }
+/* 確認が必要な連絡：人の判断が残っているので、対応不要とは分けて目立たせる */
+.sus-block { margin-top: 10px; background: var(--warn-bg); border-radius: var(--radius); padding: 10px 14px 12px; }
+.breakdown > .sus-block:first-child { margin-top: 0; }
+.sus-block h3 { font-size: 13.5px; color: var(--warn); display: flex; align-items: center; gap: 6px; margin: 0 0 6px; outline: none; }
+.sus-block .fyi-reason { color: var(--text-reason); }
+.sus-item + .sus-item { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.sus-body { margin-top: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; }
+.sus-body pre { margin: 4px 0 0; white-space: pre-wrap; font-family: inherit; font-size: 13px; color: var(--text); }
+/* 対応不要の連絡：折りたたんでおく */
+.noaction { margin-top: 10px; }
+.noaction summary { cursor: pointer; color: var(--text-sub); font-size: 13px; padding: 4px 0; }
+.breakdown > .link-btn { margin: 8px 0 0; }
 .table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--surface); border-radius: var(--radius); overflow: hidden; }
 .table th, .table td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); }
 .table th { color: var(--text-sub); font-weight: 600; font-size: 12px; background: var(--nav); }
