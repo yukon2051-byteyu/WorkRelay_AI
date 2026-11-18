@@ -27,19 +27,12 @@ export default function App() {
   const [version, setVersion] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
 
-  // ---- 使い方：初回の概要・ツアー・画面の説明（設定はこのブラウザに保存。デモをやり直しても残る）
+  // ---- 初回の概要・デモツアー・画面の説明（「？」は常に表示する）
   const [showIntro, setShowIntro] = useState(false);
   const [tourBeats, setTourBeats] = useState<Beat[] | null>(null); // null = ツアー中でない
   const [tourStarting, setTourStarting] = useState(false);
-  const [helpOn, setHelpOnState] = useState(prefs.helpOn());
   const [openTip, setOpenTip] = useState<HelpId | null>(null);
-  const [howtoOpen, setHowtoOpen] = useState(false);
-  const howtoBtn = useRef<HTMLButtonElement>(null);
-  const setHelpOn = (on: boolean) => {
-    prefs.setHelpOn(on);
-    setHelpOnState(on);
-    if (!on) setOpenTip(null); // OFF にしたら開いている説明も閉じる
-  };
+  const tourBtn = useRef<HTMLButtonElement>(null); // ヘッダーの「デモツアーを体験する」
 
   const load = useCallback(async () => {
     try {
@@ -93,13 +86,6 @@ export default function App() {
     if (home && page === "today" && !showIntro && !tourBeats) tracking.homeOpened();
   }, [home, page, showIntro, tourBeats]);
 
-  const resetDemo = async () => {
-    tracking.restart();
-    await api.resetDemo();
-    setSelected(null);
-    await ingest();
-  };
-
   // ---- 3分デモツアー。ツアー中はツアー専用のデータ領域を使い、利用者のデモのデータを変えない
   const refresh = useCallback(async () => {
     setVersion((v) => v + 1);
@@ -113,7 +99,6 @@ export default function App() {
 
   const startTour = async () => {
     setShowIntro(false);
-    setHowtoOpen(false);
     setOpenTip(null);
     setTourStarting(true);
     tracking.beforeTour();
@@ -152,13 +137,13 @@ export default function App() {
     else if (dest === "document" && sales) setSelected({ id: sales.id, focus: "document" });
     else if (dest === "calendar") setPage("calendar");
     else if (dest === "report") setPage("report");
-    if (dest === "aborted") window.setTimeout(() => howtoBtn.current?.focus(), 50); // 開始ボタンにフォーカスを戻す
+    if (dest === "aborted") window.setTimeout(() => tourBtn.current?.focus(), 50); // 開始ボタンにフォーカスを戻す
     else if (dest === "free") window.setTimeout(() => document.querySelector<HTMLElement>(".card-top")?.focus(), 300);
   };
   const skipIntro = () => {
     prefs.setTourSeen();
     setShowIntro(false);
-    window.setTimeout(() => howtoBtn.current?.focus(), 0);
+    window.setTimeout(() => tourBtn.current?.focus(), 0);
   };
 
   const cards: Card[] = home ? home.sections.flatMap((s) => s.items) : [];
@@ -173,7 +158,7 @@ export default function App() {
   );
 
   return (
-    <HelpContext.Provider value={{ on: helpOn, openId: openTip, setOpenId: setOpenTip }}>
+    <HelpContext.Provider value={{ on: true, openId: openTip, setOpenId: setOpenTip }}>
       <div className="shell">
         <nav className="nav" aria-label="メイン">
           <div className="nav-brand" title="WorkRelay AI">
@@ -196,7 +181,7 @@ export default function App() {
         </nav>
 
         <div className="main">
-          {/* 共通ヘッダー：デモの案内（控えめ）と「使い方」 */}
+          {/* 共通ヘッダー：デモの案内（控えめ）・表示テーマ・デモツアーの開始 */}
           <div className="demo-bar" role="note">
             {mode === "demo" && (
               <>
@@ -206,20 +191,11 @@ export default function App() {
             )}
             <span className="spacer" />
             <ThemeSwitch />
-            <div className="menu-wrap">
-              <button ref={howtoBtn} className="btn ghost" aria-haspopup="menu" aria-expanded={howtoOpen}
-                onClick={() => setHowtoOpen((v) => !v)}>使い方 ▾</button>
-              {howtoOpen && (
-                <HowtoMenu
-                  helpOn={helpOn}
-                  canTour={!tourStarting && mode === "demo"}
-                  onTour={startTour}
-                  onToggleHelp={() => setHelpOn(!helpOn)}
-                  onClose={() => { setHowtoOpen(false); howtoBtn.current?.focus(); }}
-                />
-              )}
-            </div>
-            {mode === "demo" && <button className="btn ghost" onClick={resetDemo} disabled={!!tourBeats}>デモを最初からやり直す</button>}
+            {mode === "demo" && (
+              <button ref={tourBtn} className="btn tour-start" onClick={startTour} disabled={tourStarting || !!tourBeats}>
+                ▶ デモツアーを体験する
+              </button>
+            )}
           </div>
 
           {error ? (
@@ -290,30 +266,3 @@ function ThemeSwitch() {
   );
 }
 
-/** 「使い方」メニュー：ツアーの再生と、画面の説明の ON／OFF */
-function HowtoMenu({ helpOn, canTour, onTour, onToggleHelp, onClose }: {
-  helpOn: boolean; canTour: boolean; onTour: () => void; onToggleHelp: () => void; onClose: () => void;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    ref.current?.querySelector<HTMLElement>("[role^=menuitem]:not(:disabled)")?.focus();
-    const onDown = (e: MouseEvent) => { if (!ref.current?.parentElement?.contains(e.target as Node)) onClose(); };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [onClose]);
-  return (
-    <div className="menu howto-menu" role="menu" ref={ref}
-      onKeyDown={(e) => {
-        const list = Array.from(ref.current?.querySelectorAll<HTMLElement>("[role^=menuitem]:not(:disabled)") ?? []);
-        const i = list.indexOf(document.activeElement as HTMLElement);
-        if (e.key === "Escape") { e.stopPropagation(); onClose(); }
-        if (e.key === "ArrowDown") { e.preventDefault(); list[(i + 1) % list.length]?.focus(); }
-        if (e.key === "ArrowUp") { e.preventDefault(); list[(i - 1 + list.length) % list.length]?.focus(); }
-      }}>
-      <button role="menuitem" className="menu-item" disabled={!canTour} onClick={onTour}>デモツアーを再生（目安5分）</button>
-      <button role="menuitemcheckbox" aria-checked={helpOn} className="menu-item menu-check" onClick={onToggleHelp}>
-        画面の説明を表示 <span className={`switch${helpOn ? " on" : ""}`} aria-hidden="true">{helpOn ? "ON" : "OFF"}</span>
-      </button>
-    </div>
-  );
-}

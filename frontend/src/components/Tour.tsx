@@ -4,7 +4,7 @@ import type { Beat } from "../tour/story";
 import { SCENE_COUNT } from "../tour/story";
 
 const reduceMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-const CIRCLED = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫"; // 場面番号（場面数より多めに用意）
+const CIRCLED = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮"; // 場面番号（場面数より多めに用意）
 
 /** Tab で、ポップアップの外にフォーカスが出ないようにする */
 function trapTab(e: ReactKeyboardEvent<HTMLElement>) {
@@ -35,7 +35,7 @@ export function IntroDialog({ onStart, onSkip }: { onStart: () => void; onSkip: 
         <div className="intro-sub">目安5分・自分のペースで進めます</div>
         <p>
           WorkRelay AIは、メール・Teams・予定表から今日やるべき仕事を整理し、返信や資料の下書きを用意する業務アシスタントです。
-          営業や経理から依頼を受ける青木さんの、ある水曜日を追いながら、システムが準備するところと、人が判断するところを紹介します。
+          最初に画面の各エリアの役割を紹介し、そのあと営業や経理から依頼を受ける青木さんの、ある水曜日を追いながら、システムが準備するところと、人が判断するところを紹介します。
         </p>
         <p className="faint">架空の業務データで動くデモです。優先順位や下書きは固定ルールによるもので、生成AIは使っていません。ツアー中の操作は、ツアー専用のデータで行います。</p>
         <div className="btn-row" style={{ justifyContent: "flex-end" }}>
@@ -65,8 +65,17 @@ function unionRect(selector: string): Rect | null {
   return { top: vt - PAD, left: left - PAD, width: right - left + PAD * 2, height: Math.max(vb - vt, 24) + PAD * 2 };
 }
 
-/** ポップアップを、強調した場所に重ならず、画面に収まる位置へ置く（右→左→下→上の順に試す） */
-function place(t: Rect | null, w: number, h: number): { top: number; left: number } {
+const overlaps = (a: Rect, b: Rect) =>
+  a.left < b.left + b.width && b.left < a.left + a.width && a.top < b.top + b.height && b.top < a.top + a.height;
+
+/** 角の丸い四角の輪郭（SVG のパス）。幕に穴を開けるのに使う */
+const roundRect = (r: Rect, k = 8) =>
+  `M${r.left + k} ${r.top}H${r.left + r.width - k}Q${r.left + r.width} ${r.top} ${r.left + r.width} ${r.top + k}` +
+  `V${r.top + r.height - k}Q${r.left + r.width} ${r.top + r.height} ${r.left + r.width - k} ${r.top + r.height}` +
+  `H${r.left + k}Q${r.left} ${r.top + r.height} ${r.left} ${r.top + r.height - k}V${r.top + k}Q${r.left} ${r.top} ${r.left + k} ${r.top}Z`;
+
+/** ポップアップを、強調した場所（と、サイドバーで照らした項目）に重ならず、画面に収まる位置へ置く（右→左→下→上の順に試す） */
+function place(t: Rect | null, w: number, h: number, avoid: Rect | null = null): { top: number; left: number } {
   const vw = window.innerWidth, vh = window.innerHeight, m = 12;
   if (!t) return { top: Math.max(m, (vh - h) / 2), left: Math.max(m, (vw - w) / 2) };
   const clampX = (x: number) => Math.max(m, Math.min(x, vw - w - m));
@@ -77,7 +86,11 @@ function place(t: Rect | null, w: number, h: number): { top: number; left: numbe
     { top: t.top + t.height + GAP, left: clampX(t.left), ok: t.top + t.height + GAP + h <= vh - m },
     { top: t.top - GAP - h, left: clampX(t.left), ok: t.top - GAP - h >= m },
   ];
-  const fit = options.find((o) => o.ok);
+  // サイドバーで照らした項目に重なる候補は、横へずらして避ける（ずらせなければ次の候補へ）
+  const clear = (o: { top: number; left: number }) => !avoid || !overlaps({ top: o.top, left: o.left, width: w, height: h }, avoid);
+  const shifted = options.map((o) => (clear(o) || !avoid ? o : { ...o, left: avoid.left + avoid.width + m }))
+    .map((o) => ({ ...o, ok: o.ok && o.left + w <= vw - m && !(t && overlaps({ top: o.top, left: o.left, width: w, height: h }, t)) }));
+  const fit = shifted.find((o) => o.ok && clear(o)) ?? options.find((o) => o.ok);
   return fit ? { top: fit.top, left: fit.left } : { top: vh - h - m, left: clampX(t.left) };
 }
 
@@ -92,6 +105,7 @@ export function StoryTour({ beats, resetData, onExit }: {
   const [more, setMore] = useState(false);
   const [canOpen, setCanOpen] = useState(false);
   const [rect, setRect] = useState<Rect | null>(null);
+  const [navRect, setNavRect] = useState<Rect | null>(null); // 表示中の画面にあたるサイドバーの項目
   const [actError, setActError] = useState<string | null>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const pop = useRef<HTMLDivElement>(null);
@@ -99,16 +113,25 @@ export function StoryTour({ beats, resetData, onExit }: {
   const doneUpTo = useRef(-1); // ツアー専用データに act を適用済みの拍
   const beat = idx >= 0 ? beats[idx] : null;
   const final = beat?.kind === "ending"; // エンディング
+  const isBreak = beat?.kind === "break"; // 小休止（場面には数えない）
+  const breakTotal = beats.filter((b) => b.kind === "break").length;
+  const breakNo = beats.slice(0, idx + 1).filter((b) => b.kind === "break").length;
   const centered = !!beat && beat.target === null; // 導入・エンディングは中央に表示し、注目枠は出さない
   // 同じ場面の中での現在地（「この場面の見どころ 2 / 4」）。「次へ」で何が変わったかを伝える
-  const sceneTotal = beat ? beats.filter((b) => b.scene === beat.scene).length : 0;
-  const sceneNo = beat ? beats.slice(0, idx + 1).filter((b) => b.scene === beat.scene).length : 0;
+  const inScene = (b: Beat) => !!beat && b.scene === beat.scene && b.kind !== "break";
+  const sceneTotal = beat && !isBreak ? beats.filter(inScene).length : 0;
+  const sceneNo = beat && !isBreak ? beats.slice(0, idx + 1).filter(inScene).length : 0;
 
   const measure = useCallback(() => {
     if (!beat) return;
     const r = beat.target ? unionRect(beat.target) : null;
+    // 照らした場所がどの画面のものか分かるよう、サイドバーの該当項目も照らす（照らす場所がサイドバーの中なら重ねない）
+    const nav = r ? unionRect('.nav-item[aria-current="page"]') : null;
+    const inNav = !!beat.target && Array.from(document.querySelectorAll(beat.target)).some((e) => e.closest(".nav"));
+    const n = nav && r && !inNav ? nav : null;
     setRect(r);
-    if (pop.current) setPos(place(r, pop.current.offsetWidth, pop.current.offsetHeight));
+    setNavRect(n);
+    if (pop.current) setPos(place(r, pop.current.offsetWidth, pop.current.offsetHeight, n));
   }, [beat]);
 
   /** k 番目の拍へ移る。戻るときはデータを初期状態に戻し、k までの操作をやり直す */
@@ -219,16 +242,30 @@ export function StoryTour({ beats, resetData, onExit }: {
   return (
     <div className="tour" role="presentation" onWheel={onWheel}>
       <div className="tour-blocker" />
-      {ready && rect && <div className="tour-spot" style={{ top: rect.top, left: rect.left, width: rect.width, height: rect.height }} />}
+      {ready && rect && (
+        <>
+          {/* 幕：照らす場所（とサイドバーの該当項目）だけ穴を開けて、周りを軽く暗くする */}
+          <svg className="tour-scrim" width="100%" height="100%" aria-hidden="true">
+            <path fillRule="evenodd"
+              d={`M0 0H${window.innerWidth}V${window.innerHeight}H0Z${roundRect(rect)}${navRect ? roundRect(navRect) : ""}`} />
+          </svg>
+          <div className="tour-spot" style={{ top: rect.top, left: rect.left, width: rect.width, height: rect.height }} />
+          {navRect && <div className="tour-spot nav-spot" style={{ top: navRect.top, left: navRect.left, width: navRect.width, height: navRect.height }} />}
+        </>
+      )}
       {centered && ready && <div className="tour-dim" />}
-      <div ref={pop} className={`tour-pop story${centered ? " final" : ""}${final ? " ending" : ""}${ready && pos ? " shown" : ""}`} role="dialog" aria-modal="true"
+      <div ref={pop} className={`tour-pop story${centered ? " final" : ""}${final ? " ending" : ""}${isBreak ? " break" : ""}${ready && pos ? " shown" : ""}`} role="dialog" aria-modal="true"
         aria-labelledby="tour-scene" aria-describedby="tour-text" onKeyDown={trapTab}
         style={pos ? { top: pos.top, left: pos.left } : { top: -9999, left: -9999 }}>
         {beat && (
           <>
             <div className="tour-head">
-              <span id="tour-scene" className="tour-scene"><span className="tour-time">{beat.time}</span>　{CIRCLED[beat.scene - 1]} {beat.sceneName}</span>
-              <span className="tour-count">場面 {beat.scene} / {SCENE_COUNT}</span>
+              {isBreak ? (
+                <span id="tour-scene" className="tour-scene"><span className="tour-time">小休止 {breakNo} / {breakTotal}</span>　{beat.sceneName}</span>
+              ) : (
+                <span id="tour-scene" className="tour-scene"><span className="tour-time">{beat.time}</span>　{CIRCLED[beat.scene - 1]} {beat.sceneName}</span>
+              )}
+              <span className="tour-count">{isBreak ? `場面 ${beat.scene} / ${SCENE_COUNT} まで` : `場面 ${beat.scene} / ${SCENE_COUNT}`}</span>
             </div>
             {sceneTotal > 1 && (
               <div className="tour-step" aria-label={`この場面の見どころ ${sceneTotal}か所中 ${sceneNo}か所目`}>
@@ -239,7 +276,16 @@ export function StoryTour({ beats, resetData, onExit }: {
               </div>
             )}
 
-            {final ? (
+            {isBreak ? (
+              <div id="tour-text" className="break-body">
+                <p className="tour-text">{beat.text}</p>
+                <h3>ここまでで見たこと</h3>
+                <ul>{beat.recap?.map((x) => <li key={x}>{x}</li>)}</ul>
+                <h3>WorkRelay AI のポイント</h3>
+                <ul className="break-points">{beat.points?.map((x) => <li key={x}>{x}</li>)}</ul>
+                {beat.next && <p className="break-next">{beat.next}</p>}
+              </div>
+            ) : final ? (
               <div id="tour-text" className="final-body">
                 <h2>デモツアーは終了です</h2>
                 <p>{beat.text}</p>

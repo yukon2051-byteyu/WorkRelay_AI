@@ -457,18 +457,17 @@ a.btn { text-decoration: none; }
 .table tr.clickable { cursor: pointer; }
 .table tr.clickable:hover td { background: var(--surface-hover); }
 .kbd { font-family: ui-monospace, Consolas, monospace; font-size: 11px; border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; color: var(--text-sub); }
-/* ---- 使い方：画面の説明（？） ---- */
+/* ---- 画面の説明（？） ---- */
 .help-wrap { position: relative; display: inline-flex; margin-left: 6px; vertical-align: middle; }
 .help-icon { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--cyan); background: var(--cyan-bg); color: var(--cyan); font-size: 11px; font-weight: 700; line-height: 1; cursor: pointer; display: grid; place-items: center; padding: 0; }
 .help-icon[aria-expanded="true"] { background: var(--cyan); color: var(--on-accent); }
 .help-pop { position: fixed; z-index: 25; width: 280px; max-width: calc(100vw - 24px); background: var(--surface-2); border: 1px solid var(--border-strong); border-left: 3px solid var(--cyan); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 13px; font-weight: 400; line-height: 1.6; letter-spacing: 0; text-transform: none; box-shadow: 0 8px 24px var(--shadow); animation: fade-in 0.15s ease-out; }
 .nav-group { display: contents; }
-.howto-menu { min-width: 240px; }
 .menu-check { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .switch { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 0 8px; border: 1px solid var(--border-strong); color: var(--text-sub); }
 .switch.on { background: var(--cyan); border-color: var(--cyan); color: var(--on-accent); }
 
-/* ---- 使い方：初回の概要とツアー ---- */
+/* ---- 初回の概要とツアー ---- */
 @keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .intro-overlay { animation: fade-in 0.2s ease-out; }
 .intro { position: relative; width: min(520px, 100%); background: var(--surface-2); border-top: 3px solid var(--accent); animation: fade-in 0.25s ease-out; }
@@ -479,7 +478,10 @@ a.btn { text-decoration: none; }
 .tour { position: fixed; inset: 0; z-index: 30; }
 .tour-blocker { position: fixed; inset: 0; }
 /* 注目エリア：シアンの細い枠だけ（発光・二重線なし）。周りは軽く暗くし、枠の中は通常画面のまま */
-.tour-spot { position: fixed; border: 1.5px solid var(--tour-spot); border-radius: 8px; box-shadow: 0 0 0 9999px var(--tour-scrim); transition: top 0.2s ease, left 0.2s ease, width 0.2s ease, height 0.2s ease; pointer-events: none; }
+.tour-spot { position: fixed; border: 1.5px solid var(--tour-spot); border-radius: 8px; pointer-events: none; }
+/* 幕は SVG で描き、照らす場所とサイドバーの該当項目の2か所に穴を開ける */
+.tour-scrim { position: fixed; inset: 0; pointer-events: none; }
+.tour-scrim path { fill: var(--tour-scrim); }
 .tour-pop { position: fixed; width: 340px; max-width: calc(100vw - 24px); background: var(--surface-2); border: 1px solid var(--border-strong); border-top: 3px solid var(--cyan); border-radius: 10px; padding: 14px 16px 12px; box-shadow: 0 12px 36px var(--shadow); opacity: 0; }
 .tour-pop.shown { opacity: 1; animation: fade-in 0.2s ease-out; }
 .tour-pop h2 { font-size: 16px; margin: 2px 0 6px; }
@@ -522,3 +524,11 @@ a.btn { text-decoration: none; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--surface-2); border: 1px solid var(--border); padding: 8px 16px; border-radius: 8px; font-size: 13px; z-index: 10; box-shadow: 0 6px 24px var(--shadow); }
 .demo-note { margin: 6px 0 0; font-size: 12px; }
+.tour-start { border-color: var(--accent); color: var(--accent); font-weight: 600; background: var(--surface-top); }
+.tour-start:hover:not(:disabled) { background: var(--accent-bg); }
+/* 小休止：ここまでのまとめと見どころ（画面中央、少し広め） */
+.tour-pop.story.break { width: min(560px, calc(100vw - 24px)); }
+.break-body h3 { font-size: 13px; margin: 12px 0 4px; color: var(--text); }
+.break-body ul { margin: 0; padding-left: 1.2em; color: var(--text-reason); font-size: 13.5px; line-height: 1.7; }
+.break-points li::marker { color: var(--accent); }
+.break-next { margin: 12px 0 0; padding-top: 8px; border-top: 1px solid var(--border); color: var(--text-sub); font-size: 13px; }

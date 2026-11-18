@@ -1,11 +1,10 @@
-// 使い方（初回ツアー・画面の説明）の設定と、「？」の説明アイコン
+// 初回の概要・表示テーマの設定と、「？」の説明アイコン（「？」は常に表示する）
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 const TIP_WIDTH = 280;
 
 // ---- 設定の保存（このブラウザだけ。サーバーには送らないので、デモをやり直しても残る）
 const KEY_TOUR_SEEN = "workrelay.tourSeen"; // 初回の概要を閉じた／スキップした
-const KEY_HELP_ON = "workrelay.helpOn"; // 画面の説明 ON／OFF
 
 function read(key: string): string | null {
   try {
@@ -32,8 +31,6 @@ export const prefs = {
   },
   tourSeen: () => read(KEY_TOUR_SEEN) === "1",
   setTourSeen: () => write(KEY_TOUR_SEEN, "1"),
-  helpOn: () => read(KEY_HELP_ON) !== "0", // 初期値は ON（一度 OFF にしたら OFF のまま）
-  setHelpOn: (on: boolean) => write(KEY_HELP_ON, on ? "1" : "0"),
 };
 
 // ---- 画面の説明（「？」）の文言。何の情報か・何のために見るかを1〜2文で
@@ -50,7 +47,7 @@ export type HelpId = keyof typeof HELP_TEXT;
 type HelpState = { on: boolean; openId: HelpId | null; setOpenId: (id: HelpId | null) => void };
 export const HelpContext = createContext<HelpState>({ on: false, openId: null, setOpenId: () => {} });
 
-/** 見出しの横に置く「？」。画面の説明が ON のときだけ表示する */
+/** 見出しの横に置く「？」。常に表示し、押すと説明の吹き出しを開く */
 export function HelpTip({ id, label }: { id: HelpId; label: string }) {
   const { on, openId, setOpenId } = useContext(HelpContext);
   const btn = useRef<HTMLButtonElement>(null);
