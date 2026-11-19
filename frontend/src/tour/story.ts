@@ -141,8 +141,8 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
       detail: "「⚠ 判断待ち」の欄に、Teamsの抜粋と、つないだときの影響（確定期限は今日15:00のまま）をまとめています。全文と理由は「原文と判定理由を見る」から確かめられます。" },
     { ...s3, seconds: 7, target: "[data-sec=summary] .due-line, [data-sec=decided]", can: can3, screen: { sel: { id: ids.sales, focus: "summary" } }, mood: "nod",
       title: "つないでも、確定期限はそのまま",
-      text: "今日11:00は「前倒しの相談中」として記録。引き受けた15:00は変わりません。",
-      detail: "つなぐ判断と、期限を変える判断は別です。期限を変えるときは「期限」タブの「確定期限を変更」を青木さんが選びます。",
+      text: "Teamsで届いた「今日11:00に欲しい」は、依頼者の希望として記録しました。すでに引き受けている確定期限（今日15:00）は、自動では変わりません。",
+      detail: "期限を11:00に早めるかどうかは、つなぐ判断とは別に、青木さんが決めます（「期限」タブの「確定期限を変更」）。このあと、まずは速報版で間に合うかを営業に確認します。",
       act: async () => {
         const d = await api.request(ids.sales);
         const c = d.candidates.find((x) => x.status === "pending");
