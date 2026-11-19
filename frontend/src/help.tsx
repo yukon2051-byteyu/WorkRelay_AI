@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState
 const TIP_WIDTH = 280;
 
 // ---- 設定の保存（このブラウザだけ。サーバーには送らないので、デモをやり直しても残る）
-const KEY_TOUR_SEEN = "workrelay.tourSeen"; // 初回の概要を閉じた／スキップした
+const KEY_NO_AUTO_TOUR = "workrelay.noAutoTour"; // 自動テスト用：読み込み時にツアーを始めない（画面には出さない設定）
 
 function read(key: string): string | null {
   try {
@@ -29,8 +29,7 @@ export const prefs = {
     write(KEY_THEME, t);
     document.documentElement.setAttribute("data-theme", t); // 色だけを切り替えるので、画面の状態はそのまま
   },
-  tourSeen: () => read(KEY_TOUR_SEEN) === "1",
-  setTourSeen: () => write(KEY_TOUR_SEEN, "1"),
+  noAutoTour: () => read(KEY_NO_AUTO_TOUR) === "1",
 };
 
 // ---- 画面の説明（「？」）の文言。何の情報か・何のために見るかを1〜2文で

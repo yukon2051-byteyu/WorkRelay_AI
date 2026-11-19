@@ -487,12 +487,6 @@ a.btn { text-decoration: none; }
 
 /* ---- 初回の概要とツアー ---- */
 @keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-.intro-overlay { animation: fade-in 0.2s ease-out; }
-.intro { position: relative; width: min(520px, 100%); background: var(--surface-2); border-top: 3px solid var(--accent); animation: fade-in 0.25s ease-out; }
-.intro h2 { font-size: 20px; margin: 4px 0 10px; }
-.intro p { color: var(--text-reason); margin: 0 0 10px; }
-.intro-tag { font-size: 12px; color: var(--accent); font-weight: 700; }
-.intro-close { position: absolute; top: 10px; right: 10px; font-size: 18px; }
 .tour { position: fixed; inset: 0; z-index: 30; }
 .tour-blocker { position: fixed; inset: 0; }
 /* 注目エリア：シアンの細い枠だけ（発光・二重線なし）。周りは軽く暗くし、枠の中は通常画面のまま */
@@ -527,14 +521,13 @@ a.btn { text-decoration: none; }
 .tour-dots { display: inline-flex; gap: 4px; }
 .tour-dots > span { width: 6px; height: 6px; border-radius: 50%; border: 1px solid var(--text-faint); }
 .tour-dots > span.on { background: var(--accent); border-color: var(--accent); }
-.intro-sub { color: var(--text-sub); font-size: 13px; margin: -2px 0 10px; }
 .tour-loading { margin-top: 6px; }
 .final-body h2 { font-size: 18px; margin: 8px 0 6px; }
 .final-body p { color: var(--text-reason); margin: 0 0 8px; font-size: 13.5px; line-height: 1.7; }
 .final-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 /* OS で「動きを減らす」設定をしている人には、移動やアニメーションをしない */
 @media (prefers-reduced-motion: reduce) {
-  .intro, .intro-overlay, .tour-pop.shown, .help-pop { animation: none; }
+  .tour-pop.shown, .help-pop { animation: none; }
   .tour-spot { transition: none; }
 }
 

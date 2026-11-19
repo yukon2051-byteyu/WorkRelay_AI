@@ -16,37 +16,6 @@ function trapTab(e: ReactKeyboardEvent<HTMLElement>) {
   else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
 }
 
-// ---------------------------------------------------------------- 初回の概要
-
-export function IntroDialog({ onStart, onSkip }: { onStart: () => void; onSkip: () => void }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    ref.current?.querySelector<HTMLButtonElement>(".btn.primary")?.focus();
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); onSkip(); } };
-    window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
-  }, [onSkip]);
-  return (
-    <div className="overlay intro-overlay" role="presentation">
-      <div className="dialog intro" role="dialog" aria-modal="true" aria-labelledby="intro-title" ref={ref} onKeyDown={trapTab}>
-        <button className="btn ghost icon intro-close" aria-label="閉じる" onClick={onSkip}>×</button>
-        <div className="intro-tag">WorkRelay AI 公開デモ</div>
-        <h2 id="intro-title">青木さんの一日を体験</h2>
-        <div className="intro-sub">目安5分・自分のペースで進めます</div>
-        <p>
-          WorkRelay AIは、メール・Teams・予定表から今日やるべき仕事を整理し、返信や資料の下書きを用意する業務アシスタントです。
-          最初に画面の各エリアの役割を紹介し、そのあと営業や経理から依頼を受ける青木さんの、ある水曜日を追いながら、システムが準備するところと、人が判断するところを紹介します。
-        </p>
-        <p className="faint">架空の業務データで動くデモです。優先順位や下書きは固定ルールによるもので、生成AIは使っていません。ツアー中の操作は、ツアー専用のデータで行います。</p>
-        <div className="btn-row" style={{ justifyContent: "flex-end" }}>
-          <button className="btn" onClick={onSkip}>すぐに試す</button>
-          <button className="btn primary" onClick={onStart}>デモツアーを始める</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------- 3分デモツアー
 
 type Rect = { top: number; left: number; width: number; height: number };

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, Card, dataSpace, Health, Home, tracking } from "./api";
 import RequestDetail from "./components/RequestDetail";
-import { ExitDest, IntroDialog, StoryTour } from "./components/Tour";
+import { ExitDest, StoryTour } from "./components/Tour";
 import { Beat, buildStory, resolveIds } from "./tour/story";
 import { HelpContext, HelpId, prefs, Theme } from "./help";
 import { IconCalendar, IconChart, IconInbox, IconPlug, IconToday } from "./icons";
@@ -28,7 +28,6 @@ export default function App() {
   const [toast, setToast] = useState<string | null>(null);
 
   // ---- 初回の概要・デモツアー・画面の説明（「？」は常に表示する）
-  const [showIntro, setShowIntro] = useState(false);
   const [tourBeats, setTourBeats] = useState<Beat[] | null>(null); // null = ツアー中でない
   const [tourStarting, setTourStarting] = useState(false);
   const [openTip, setOpenTip] = useState<HelpId | null>(null);
@@ -54,13 +53,14 @@ export default function App() {
 
   const topCard: Card | undefined = home?.sections.find((s) => s.key === "now")?.items[0];
 
-  // 初回の表示：概要を出す（閉じる・スキップしたら、このブラウザでは次回から出さない）
+  // 読み込むたび（更新ボタンを押したときも）デモツアーを最初から始める。ツアーはツアー専用のデータで動き、「終了」でいつでもやめられる。
+  // 特定の画面・依頼を開くリンク（?open= / ?page= など）で来たときと、自動テスト用の設定があるときは始めない
   const [firstChecked, setFirstChecked] = useState(false);
   useEffect(() => {
     if (!home || firstChecked) return;
     setFirstChecked(true);
-    if (!prefs.tourSeen() && page === "today" && topCard && !params.get("open")) {
-      setShowIntro(true);
+    if (mode === "demo" && !params.get("open") && !params.get("page") && !params.get("guide") && !prefs.noAutoTour()) {
+      startTour();
       return;
     }
     // 横長の画面（1600px以上）では、最初に「まずこれ」の詳細を開いて右側の余白を活用する
@@ -85,8 +85,8 @@ export default function App() {
   };
   // 「今日やること」を表示したら、朝の確認の開始として記録する（段取り時間の計測。ツアー中は記録しない）
   useEffect(() => {
-    if (home && page === "today" && !showIntro && !tourBeats) tracking.homeOpened();
-  }, [home, page, showIntro, tourBeats]);
+    if (home && page === "today" && !tourBeats && !tourStarting) tracking.homeOpened();
+  }, [home, page, tourBeats, tourStarting]);
 
   /** デモのデータを初期状態に戻す（このブラウザでの操作をすべて取り消す）。押した結果がはっきり分かるよう、確認と完了の通知を出す */
   const resetDemo = async () => {
@@ -115,7 +115,6 @@ export default function App() {
   }, [refresh]);
 
   const startTour = async () => {
-    setShowIntro(false);
     setOpenTip(null);
     setTourStarting(true);
     tracking.beforeTour();
@@ -141,7 +140,6 @@ export default function App() {
 
   /** ツアーを終える：利用者のデモの領域に戻り、選んだ画面を開く */
   const exitTour = async (dest: ExitDest) => {
-    prefs.setTourSeen();
     setTourBeats(null);
     dataSpace.set("demo");
     setGuideOpen(false);
@@ -156,11 +154,6 @@ export default function App() {
     else if (dest === "report") setPage("report");
     if (dest === "aborted") window.setTimeout(() => tourBtn.current?.focus(), 50); // 開始ボタンにフォーカスを戻す
     else if (dest === "free") window.setTimeout(() => document.querySelector<HTMLElement>(".card-top")?.focus(), 300);
-  };
-  const skipIntro = () => {
-    prefs.setTourSeen();
-    setShowIntro(false);
-    window.setTimeout(() => tourBtn.current?.focus(), 0);
   };
 
   const cards: Card[] = home ? home.sections.flatMap((s) => s.items) : [];
@@ -266,7 +259,6 @@ export default function App() {
         </div>
         {toast && <div className="toast" role="status">{toast}</div>}
 
-        {showIntro && <IntroDialog onStart={startTour} onSkip={skipIntro} />}
         {tourStarting && <div className="toast" role="status">ツアーを準備しています…</div>}
         {resetAsk && <ResetDialog onOk={resetDemo} onCancel={() => { setResetAsk(false); resetBtn.current?.focus(); }} />}
         {tourBeats && <StoryTour beats={tourBeats} resetData={resetTourData} onExit={exitTour} />}
