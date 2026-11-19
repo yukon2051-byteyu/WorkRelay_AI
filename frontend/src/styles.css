@@ -865,3 +865,6 @@ a.btn { text-decoration: none; }
 :root[data-theme="dark"] .tour-intro { color: #b3acff; }
 /* アプリ説明は小見出し（15px）より大きく */
 .tour-pop.story .tour-intro { font-size: 17px; line-height: 1.65; max-width: 420px; }
+/* ウェルカム画面は、アプリ説明が指定の位置で改行できる幅に（狭い画面では各行の中で折り返す） */
+.tour-pop.story.welcome { width: min(640px, calc(100vw - 24px)); }
+.tour-pop.story .tour-intro { max-width: none; }

@@ -289,7 +289,9 @@ export function StoryTour({ beats, resetData, onExit }: {
               {welcome && <p className="tour-sub">{beat.title}</p>}
               {welcome && (
                 <p className="tour-intro">
-                  WorkRelay AIは、メール・Teams チャット・予定表から「今日やること」を見つけ、優先順位をつけ、返信や会議資料の下書きまで用意する、仕事向けのアシスタントです。
+                  WorkRelay AIは、メール・Teams チャット・予定表から<br />
+                  「今日やること」を見つけ、優先順位をつけ、<br />
+                  返信や会議資料の下書きまで用意する、あなたのアシスタントです。
                 </p>
               )}
               {(welcome || isBreak) && progress}
