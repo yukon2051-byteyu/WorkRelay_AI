@@ -192,7 +192,7 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
     // ⑤ 09:20 会議資料を準備する
     { ...s5, seconds: 5, target: "#tab-document", can: can5,
       title: "資料の下書きもスタンバイ完了",
-      text: "たたき台があるから、すぐブラッシュアップに入れます。" },
+      text: "下書きがあるから、すぐブラッシュアップに入れます。" },
     { ...s5, seconds: 6, target: "[data-sec=document] .slides", can: can5, screen: { sel: { id: ids.sales, focus: "document" } },
       title: "3枚の下書きを用意済み",
       text: "概要・数字と変化・会議で確認したいこと。編集できるPowerPointで受け取れます。" },
@@ -248,7 +248,7 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
       title: "段取り完了🎉",
       text: "午前中のうちに、資料と次の仕事の準備が整いました。",
       recap: [
-        "出典つきの会議資料のたたき台（3枚）を用意した",
+        "出典つきの会議資料の下書き（3枚）を用意した",
         "不足項目がそろった依頼を「着手可能」にした",
         "空き枠に作業枠を登録した（確認してから）",
       ],

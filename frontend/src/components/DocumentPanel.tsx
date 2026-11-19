@@ -3,7 +3,7 @@ import { IconCheck, IconWarn } from "../icons";
 
 type Props = { detail: RequestDetail; onChanged: (message: string) => void };
 
-/** 会議資料のたたき台：参照の許可、スライドのプレビュー、数値の根拠、ダウンロード */
+/** 会議資料の下書き：参照の許可、スライドのプレビュー、数値の根拠、ダウンロード */
 export default function DocumentPanel({ detail, onChanged }: Props) {
   const doc = detail.document;
   const c = doc?.content;
@@ -19,7 +19,7 @@ export default function DocumentPanel({ detail, onChanged }: Props) {
   const generate = async () => {
     try {
       await api.createDocument(detail.id);
-      onChanged(doc ? "新しい条件で資料を作り直しました" : "資料のたたき台を作りました");
+      onChanged(doc ? "新しい条件で資料を作り直しました" : "資料の下書きを作りました");
     } catch (e) {
       onChanged(`資料を作れませんでした：${(e as Error).message}`);
     }
@@ -41,8 +41,8 @@ export default function DocumentPanel({ detail, onChanged }: Props) {
 
       {!doc || !c ? (
         <div style={{ marginTop: 10 }}>
-          <p className="muted" style={{ margin: "0 0 8px" }}>まだ資料のたたき台はありません。</p>
-          <button className="btn primary" onClick={generate}>資料のたたき台を作る</button>
+          <p className="muted" style={{ margin: "0 0 8px" }}>まだ資料の下書きはありません。</p>
+          <button className="btn primary" onClick={generate}>資料の下書きを作る</button>
         </div>
       ) : (
         <div className="doc">

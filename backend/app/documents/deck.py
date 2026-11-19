@@ -55,7 +55,7 @@ def build_content(*, meeting: str | None, month: str | None, month_evidence: str
     footer = (f"出典：{file_name}／シート「売上実績」／対象：{source['period']}／集計：{aggregated_at}"
               if source else "出典：要確認（参照を許可した売上データがありません）")
 
-    label = "速報版" if speed else "たたき台"
+    label = "速報版" if speed else "下書き"
     title = f"【{label}】{m_short} 売上の概要" + (f"（{meeting}用）" if meeting else "")
 
     # 1枚目：概要

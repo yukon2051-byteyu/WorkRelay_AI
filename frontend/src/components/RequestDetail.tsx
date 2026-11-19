@@ -339,7 +339,7 @@ export default function RequestDetail({ requestId, card, nowIso, events, freeSlo
         {d.type_code === "document" && (
           <div role="tabpanel" id="panel-document" aria-labelledby="tab-document" hidden={tab !== "document"}>
             <section className="block" data-sec="document">
-              <h3>会議資料のたたき台{d.document?.needs_review && <span className="badge warn"><IconWarn size={12} />更新確認</span>}</h3>
+              <h3>会議資料の下書き{d.document?.needs_review && <span className="badge warn"><IconWarn size={12} />更新確認</span>}</h3>
               <DocumentPanel detail={d} onChanged={onChanged} />
             </section>
           </div>
