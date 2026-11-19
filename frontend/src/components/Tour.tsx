@@ -284,7 +284,7 @@ export function StoryTour({ beats, resetData, onExit }: {
               {final && <div className="pale-pill">🎉 水曜日ツアー完走 🏆</div>}
 
               <h3 id="tour-title" className="tour-title">
-                {welcome ? "WorkRelay AI へようこそ！青木さん" : isBreak ? beat.text : beat.title}
+                {welcome ? "WorkRelay AI へようこそ！" : isBreak ? beat.text : beat.title}
               </h3>
               {welcome && <p className="tour-sub">{beat.title}</p>}
               {(welcome || isBreak) && progress}
@@ -304,7 +304,6 @@ export function StoryTour({ beats, resetData, onExit }: {
 
               {welcome && (
                 <>
-                  <button className="tour-link" onClick={() => goTo(idx + 1)}>デモツアーを開始する →</button>
                   <ul className="note-pills" aria-label="このデモについて">
                     <li>架空の業務データ</li>
                     <li>固定ルールで判定（生成AIは未使用）</li>
@@ -352,7 +351,7 @@ export function StoryTour({ beats, resetData, onExit }: {
                 {final ? (
                   <button className="btn tbtn primary cta" data-tour-focus onClick={() => onExit("free")}>🎉 ツアーを完了</button>
                 ) : (
-                  <button className="btn tbtn primary cta" data-tour-focus data-next onClick={() => goTo(idx + 1)}>次へ →</button>
+                  <button className="btn tbtn primary cta" data-tour-focus data-next onClick={() => goTo(idx + 1)}>{welcome ? "デモツアーを開始" : "次へ →"}</button>
                 )}
               </div>
               {actError && <div className="notice warn" role="status" style={{ marginTop: 8 }}>{actError}</div>}
