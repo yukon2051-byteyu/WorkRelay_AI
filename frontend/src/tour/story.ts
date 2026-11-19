@@ -131,6 +131,10 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
       detail: "要確認の1件は、AIへの操作を指示する不審なメールです。本文の指示は実行せず、依頼への登録も保留しています。「元の連絡を確認」で本文を見て判断できます。" },
 
     // ③ 09:02 昨夜のTeamsを確認する
+    // まず右ペイン（依頼の詳細）の見方を紹介してから、判断の場面へ
+    { ...s3, seconds: 6, target: ".detail-pane", screen: { breakdown: false, sel: { id: ids.sales, focus: "detail" } }, mood: "nod",
+      title: "右側に、依頼の詳細が開きます",
+      text: "「概要」に次にやること・期限・判断に必要な根拠がまとまり、タブで連絡・期限・下書き・資料を確かめられます。" },
     { ...s3, seconds: 8, target: "[data-sec=candidate]", can: can3, screen: { breakdown: false, sel: { id: ids.sales, focus: "candidate" } },
       title: "「同じ依頼？」は1クリックでサクッと判定",
       text: "AI任せにせず、最後の判断だけ人が選ぶから安心です。",
