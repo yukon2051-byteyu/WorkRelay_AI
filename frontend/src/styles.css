@@ -860,3 +860,6 @@ a.btn { text-decoration: none; }
 :root[data-theme="dark"] .stat.now-stat .stat-label, :root[data-theme="dark"] .stat.now-stat .stat-value { color: #ffe4e4; }
 /* ウェルカム画面：アプリの説明 */
 .tour-intro { margin: 10px auto 0; max-width: 400px; font-size: 13.5px; line-height: 1.7; color: var(--text-reason); }
+/* ウェルカム画面のアプリ説明：指定の青紫（#4839BC）の太字。ダークでは暗い背景でも読めるよう明るい青紫 */
+.tour-intro { color: #4839bc; font-weight: 700; }
+:root[data-theme="dark"] .tour-intro { color: #b3acff; }
