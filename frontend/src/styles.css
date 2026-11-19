@@ -850,3 +850,11 @@ a.btn { text-decoration: none; }
 /* 上の「今すぐ対応の仕事」：朱色の背景に黒い文字（ライト・ダーク共通） */
 .stat.now-stat { background: #eb6101; border-color: #eb6101; }
 .stat.now-stat .stat-label, .stat.now-stat .stat-value { color: #111111; }
+/* 区分見出しを3分の2の大きさに（26px → 約17px）。件数は見出しより小さく */
+.section-head.sec-now, .section-head.sec-today, .section-head.sec-batch, .section-head.sec-waiting { font-size: 17.3px; margin: 4px 0 8px 2px; }
+.section-head.sec-now .n, .section-head.sec-today .n, .section-head.sec-batch .n, .section-head.sec-waiting .n { font-size: 12px; }
+/* 「今すぐ対応の仕事」：見出し「今すぐ対応」の赤を薄くした背景（ライトは黒い文字。ダークは暗い背景に合わせて薄い赤の文字） */
+.stat.now-stat { background: #fde2e2; border-color: #f5b5b5; }
+.stat.now-stat .stat-label, .stat.now-stat .stat-value { color: #111111; }
+:root[data-theme="dark"] .stat.now-stat { background: rgba(255, 107, 107, 0.2); border-color: rgba(255, 107, 107, 0.45); }
+:root[data-theme="dark"] .stat.now-stat .stat-label, :root[data-theme="dark"] .stat.now-stat .stat-value { color: #ffe4e4; }
