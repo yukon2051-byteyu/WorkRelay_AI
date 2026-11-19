@@ -194,7 +194,7 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
       title: "資料の下書きもスタンバイ完了",
       text: "たたき台があるから、すぐブラッシュアップに入れます。" },
     { ...s5, seconds: 6, target: "[data-sec=document] .slides", can: can5, screen: { sel: { id: ids.sales, focus: "document" } },
-      title: "3枚のたたき台を用意済み",
+      title: "3枚の下書きを用意済み",
       text: "概要・数字と変化・会議で確認したいこと。編集できるPowerPointで受け取れます。" },
     { ...s5, seconds: 6, target: "[data-sec=document] .evidence-grid", can: can5,
       title: "数字には出典つき",
