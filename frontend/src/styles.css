@@ -715,15 +715,9 @@ a.btn { text-decoration: none; }
 .confetti i:nth-child(16) { left: 63%; background: #ec4899; animation-delay: 0.05s; animation-duration: 1.30s; width: 6px; }
 .confetti i:nth-child(17) { left: 24%; background: #14b8a6; animation-delay: 0.42s; animation-duration: 1.45s; width: 8px; }
 .confetti i:nth-child(18) { left: 77%; background: #a78bfa; animation-delay: 0.29s; animation-duration: 1.60s; width: 10px; }
-/* 青木さんの小さな動き */
-.aoki-wave { transform-origin: 112px 112px; animation: aoki-wave 1.2s ease-in-out 2; }
-@keyframes aoki-wave { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(6deg); } }
-.aoki-spark { transform-origin: 117px 30px; animation: aoki-spark 1.6s ease-in-out infinite; }
-@keyframes aoki-spark { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.8); } }
-.aoki-check { transform-origin: 115px 114px; animation: achieve-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
 @media (prefers-reduced-motion: reduce) {
   .confetti { display: none; }
-  .achieve, .aoki-wave, .aoki-spark, .aoki-check { animation: none; }
+  .achieve { animation: none; }
   .tour-pop.story .btn.primary.cta { transition: none; }
 }
 /* 狭い画面 */
@@ -832,3 +826,11 @@ a.btn { text-decoration: none; }
 .compact .tour-jump-row { margin-top: 9px; padding-top: 6px; }
 /* ホバーで位置を動かすと、ボタンの縁にカーソルがあるとき「浮く→外れる→戻る」を繰り返して震えるため、ホバーは明るさと影だけにする（押したときの沈み込みは残す） */
 .tour-pop.story .btn.primary.cta:hover { transform: none; filter: brightness(1.07); box-shadow: 0 5px 0 #3b2fa8, 0 12px 22px rgba(67, 56, 202, 0.34); }
+/* 青木さんの画像（添付の画像をそのまま表示。アニメーションなし） */
+.tour-band .aoki-figure { filter: none; animation: none; }
+/* 「次へ」などのボタンは立体的に見せない（影・浮き沈みなしの平らなボタン） */
+.tour-pop.story .btn.primary.cta, .tour-pop.story .btn.primary.cta:hover, .tour-pop.story .btn.primary.cta:active {
+  background: #5145cf; box-shadow: none; transform: none; filter: none; transition: background-color 0.1s ease; }
+.tour-pop.story .btn.primary.cta:hover { background: #463bbd; }
+.tour-pop.story .btn.primary.cta:active { background: #3d33a8; }
+.tour-pop.story .tour-band img.aoki-figure { width: auto; }

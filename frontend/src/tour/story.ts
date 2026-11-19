@@ -38,19 +38,19 @@ export type Beat = {
 
 /** 4つのチャプター（進捗バー） */
 export const CHAPTERS = ["導入", "朝の整理", "段取り", "振り返り"] as const;
-/** 場面ごとの時刻バッジ・チャプター・青木さんの既定の表情 */
+/** 場面ごとの時刻バッジ・チャプター・青木さんの既定の画像（判断が要る場面は「考える」、機能を紹介する場面は「ひらめき」） */
 export const SCENE_META: Record<number, { badge: string; chapter: number; mood: Mood }> = {
   1: { badge: "🚀 導入", chapter: 0, mood: "morning" },
   2: { badge: "☀️ 09:00", chapter: 1, mood: "morning" },
-  3: { badge: "⚡ 09:02", chapter: 1, mood: "idea" },
+  3: { badge: "⚡ 09:02", chapter: 1, mood: "think" },
   4: { badge: "✉️ 09:05", chapter: 1, mood: "idea" },
   5: { badge: "📄 09:20", chapter: 2, mood: "idea" },
-  6: { badge: "🔓 10:00", chapter: 2, mood: "idea" },
+  6: { badge: "🔓 10:00", chapter: 2, mood: "think" },
   7: { badge: "🗓️ 10:05", chapter: 2, mood: "idea" },
   8: { badge: "👀 15:00", chapter: 3, mood: "idea" },
-  9: { badge: "📊 17:30", chapter: 3, mood: "idea" },
+  9: { badge: "📊 17:30", chapter: 3, mood: "think" },
   10: { badge: "🔌 本番イメージ", chapter: 3, mood: "idea" },
-  11: { badge: "🎉 完了", chapter: 3, mood: "done" },
+  11: { badge: "🎉 完了", chapter: 3, mood: "break1" },
 };
 
 export type Ids = { sales: number; expense: number; budget: number };
@@ -125,7 +125,7 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
       title: "出社！まずは「まずこれ」だけ見ればOK",
       text: "メールもTeamsも、すでに優先度順に並んでいます。",
       detail: "並び順はデモの固定ルールで決めています（条件の変更・相手が待っている確認・期限の近さ・空き時間）。生成AIは使っていません。" },
-    { ...s2, seconds: 7, target: "[data-tour=breakdown-toggle], #suspicious", can: can2, screen: { breakdown: true },
+    { ...s2, seconds: 7, target: "[data-tour=breakdown-toggle], #suspicious", can: can2, screen: { breakdown: true }, mood: "think",
       title: "届いた16件の仕分けもひと目で",
       text: "確認が必要な1件だけを分けて表示。対応不要の7件は折りたたんであります。",
       detail: "要確認の1件は、AIへの操作を指示する不審なメールです。本文の指示は実行せず、依頼への登録も保留しています。「元の連絡を確認」で本文を見て判断できます。" },
@@ -161,7 +161,7 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
         }
         await ctl.refresh();
       } },
-    { ...s4, seconds: 6, target: "[data-sec=draft] .draft .btn-row", can: can4, mood: "done",
+    { ...s4, seconds: 6, target: "[data-sec=draft] .draft .btn-row", can: can4,
       title: "送るのは、あなたの操作で",
       text: "コピーしてTeamsで送ります。Outlookへの保存は、デモではアプリ内の記録だけです。",
       act: async () => {
@@ -170,7 +170,7 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
       } },
 
     // ☕ 小休止1：朝の整理（取り込み → 関連付け → 返信）が終わったところ
-    { ...s4, kind: "break", time: "小休止", sceneName: "朝の整理完了", seconds: 12, target: null, mood: "done",
+    { ...s4, kind: "break", time: "小休止", sceneName: "朝の整理完了", seconds: 12, target: null, mood: "break1",
       title: "朝の整理完了🎉",
       text: "出社して5分で、朝の整理が終わりました。",
       recap: [
@@ -236,7 +236,7 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
       text: "経費一覧と売上資料の作業枠が、別々の予定として並びました。" },
 
     // ☕ 小休止2：準備と段取り（資料 → 着手可能 → 作業枠）が終わったところ
-    { ...s7, kind: "break", time: "小休止", sceneName: "段取り完了", seconds: 12, target: null, mood: "done",
+    { ...s7, kind: "break", time: "小休止", sceneName: "段取り完了", seconds: 12, target: null, mood: "break2",
       title: "段取り完了🎉",
       text: "午前中のうちに、資料と次の仕事の準備が整いました。",
       recap: [
