@@ -589,3 +589,14 @@ a.btn { text-decoration: none; }
 .link-btn:hover { color: var(--accent-strong); }
 .cand-source + .cand-source { margin-top: 14px; }
 .next-box .nw { white-space: nowrap; }
+/* ツアー：場面の移動（‹ › と、場面を選ぶ一覧） */
+.tour-head { position: relative; }
+.jump-btn { border-color: var(--border-strong); width: 26px; height: 24px; font-size: 17px; color: var(--text); }
+.scene-pick { background: none; border: 1px solid var(--border-strong); border-radius: 4px; padding: 1px 8px; font-size: 12px; color: var(--text); cursor: pointer; white-space: nowrap; }
+.scene-pick:hover, .scene-pick[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+.scene-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 2; list-style: none; margin: 0; padding: 4px; min-width: 260px; max-height: 320px; overflow-y: auto;
+  background: var(--pop-bg); border: 1px solid var(--pop-border); border-radius: 8px; box-shadow: 0 8px 24px var(--shadow); }
+.scene-menu button { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 5px; padding: 6px 10px; font-size: 13px; color: var(--text); cursor: pointer; }
+.scene-menu button:hover, .scene-menu button:focus-visible { background: var(--accent-bg); outline: none; }
+.scene-menu button[aria-selected="true"] { font-weight: 700; color: var(--accent); }
+.scene-menu button.is-break { color: var(--text-sub); padding-left: 22px; }

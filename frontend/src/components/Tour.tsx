@@ -124,6 +124,13 @@ export function StoryTour({ beats, resetData, onExit }: {
   const curUnit = unitStarts.filter((s) => s <= idx).length - 1; // 今いる区切りの番号
   const prevScene = curUnit > 0 ? unitStarts[curUnit - 1] : -1;
   const nextScene = curUnit >= 0 && curUnit + 1 < unitStarts.length ? unitStarts[curUnit + 1] : -1;
+  // 場面を選んで移動するメニュー（どの場面へも、順番に関係なく移れる）
+  const [pickOpen, setPickOpen] = useState(false);
+  const unitLabel = (i: number) => {
+    const b = beats[i];
+    return b.kind === "break" ? `小休止：${b.sceneName}` : `${CIRCLED[b.scene - 1]} ${b.time}　${b.sceneName}`;
+  };
+  const jumpTo = (k: number) => { setPickOpen(false); if (k >= 0) goTo(k); };
   const inScene = (b: Beat) => !!beat && b.scene === beat.scene && b.kind !== "break";
   const sceneTotal = beat && !isBreak ? beats.filter(inScene).length : 0;
   const sceneNo = beat && !isBreak ? beats.slice(0, idx + 1).filter(inScene).length : 0;
@@ -231,7 +238,9 @@ export function StoryTour({ beats, resetData, onExit }: {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); onExit("aborted"); }
+      if (e.key === "Escape" && pickOpen) { e.stopPropagation(); e.preventDefault(); setPickOpen(false); }
+      else if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); onExit("aborted"); }
+      else if (pickOpen) return; // メニューを開いている間は、矢印キーで拍を動かさない
       else if (e.key === "ArrowRight" && e.shiftKey) { e.preventDefault(); e.stopPropagation(); if (nextScene >= 0) goTo(nextScene); }
       else if (e.key === "ArrowLeft" && e.shiftKey) { e.preventDefault(); e.stopPropagation(); if (prevScene >= 0) goTo(prevScene); }
       else if (e.key === "ArrowRight") { e.preventDefault(); e.stopPropagation(); goTo(idx + 1); }
@@ -245,7 +254,7 @@ export function StoryTour({ beats, resetData, onExit }: {
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, true);
     };
-  }, [idx, goTo, measure, onExit, prevScene, nextScene]);
+  }, [idx, goTo, measure, onExit, prevScene, nextScene, pickOpen]);
 
   return (
     <div className="tour" role="presentation" onWheel={onWheel}>
@@ -273,12 +282,34 @@ export function StoryTour({ beats, resetData, onExit }: {
               ) : (
                 <span id="tour-scene" className="tour-scene"><span className="tour-time">{beat.time}</span>　{CIRCLED[beat.scene - 1]} {beat.sceneName}</span>
               )}
-              {/* 場面ごと飛ばす・戻る（‹ ›。Shift＋← → でも操作できる）。説明の高さを増やさないよう、場面番号の両側に置く */}
+              {/* 場面の移動：‹ › で前後の場面へ、場面番号を押すと一覧からどの場面へも移れる（Shift＋← → でも操作できる） */}
               <span className="tour-count tour-jump">
-                <button className="jump-btn" aria-label="前の場面へ" title="前の場面へ（Shift＋←）" disabled={prevScene < 0} onClick={() => goTo(prevScene)}>‹</button>
-                {isBreak ? `場面 ${beat.scene} / ${SCENE_COUNT} まで` : `場面 ${beat.scene} / ${SCENE_COUNT}`}
-                <button className="jump-btn" aria-label="次の場面へ" title="次の場面へ（Shift＋→）" disabled={nextScene < 0} onClick={() => goTo(nextScene)}>›</button>
+                <button className="jump-btn" aria-label="前の場面へ" title="前の場面へ（Shift＋←）" disabled={prevScene < 0} onClick={() => jumpTo(prevScene)}>‹</button>
+                <button className="scene-pick" aria-haspopup="listbox" aria-expanded={pickOpen} aria-label="場面を選んで移動"
+                  onClick={() => setPickOpen((v) => !v)}>
+                  {isBreak ? `場面 ${beat.scene} / ${SCENE_COUNT} まで` : `場面 ${beat.scene} / ${SCENE_COUNT}`} ▾
+                </button>
+                <button className="jump-btn" aria-label="次の場面へ" title="次の場面へ（Shift＋→）" disabled={nextScene < 0} onClick={() => jumpTo(nextScene)}>›</button>
               </span>
+              {pickOpen && (
+                <ul className="scene-menu" role="listbox" aria-label="場面を選んで移動"
+                  ref={(el) => el?.querySelector<HTMLElement>('[aria-selected="true"]')?.focus()}>
+                  {unitStarts.map((st, u) => (
+                    <li key={st}>
+                      <button role="option" aria-selected={u === curUnit} className={beats[st].kind === "break" ? "is-break" : ""}
+                        onClick={() => jumpTo(st)}
+                        onKeyDown={(e) => {
+                          const items = Array.from(e.currentTarget.closest("ul")?.querySelectorAll<HTMLElement>("button") ?? []);
+                          const i = items.indexOf(e.currentTarget);
+                          if (e.key === "ArrowDown") { e.preventDefault(); items[Math.min(i + 1, items.length - 1)]?.focus(); }
+                          if (e.key === "ArrowUp") { e.preventDefault(); items[Math.max(i - 1, 0)]?.focus(); }
+                        }}>
+                        {unitLabel(st)}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             {sceneTotal > 1 && (
               <div className="tour-step" aria-label={`この場面の見どころ ${sceneTotal}か所中 ${sceneNo}か所目`}>
