@@ -223,6 +223,10 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
     { ...s7, seconds: 6, target: `[data-request-id="${ids.expense}"] .card-buttons .btn:first-child`, can: can7, screen: { page: "today", sel: null },
       title: "空き4時間を発見！作業枠をポンッと予約",
       text: "「空き枠を確認」から、経費一覧に必要な45分が入る枠を選びます。" },
+    // 登録する前に、予定表（期限タブ）の見方を紹介する
+    { ...s7, seconds: 6, target: "[data-sec=slots] .planner", can: can7, screen: { sel: { id: ids.expense, focus: "slots" } }, mood: "nod",
+      title: "予定表と見比べて、空き枠を提案",
+      text: "「期限」タブには、今日の予定と空き時間から、必要な45分が入る枠の候補が並びます。" },
     { ...s7, seconds: 7, target: "[data-sec=slots] .planner .registered-row", can: can7, screen: { sel: { id: ids.expense, focus: "slots" } },
       title: "11:00–11:45 を予定表に登録",
       text: "会議や昼休みと重ならず、期限に間に合う枠だけを提案。登録の前に確認画面が出ます。",
