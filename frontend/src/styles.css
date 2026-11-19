@@ -834,3 +834,19 @@ a.btn { text-decoration: none; }
 .tour-pop.story .btn.primary.cta:hover { background: #463bbd; }
 .tour-pop.story .btn.primary.cta:active { background: #3d33a8; }
 .tour-pop.story .tour-band img.aoki-figure { width: auto; }
+/* 「今日やること」の区分見出し：今すぐ対応＝赤、今日の空き時間で進める＝オレンジ、返信待ち＝濃い黄色。2倍の大きさの太字で目立たせる */
+:root, :root[data-theme="light"] { --sec-now: #c62828; --sec-today: #c2410c; --sec-waiting: #a16207; }
+:root[data-theme="dark"] { --sec-now: #ff6b6b; --sec-today: #fb923c; --sec-waiting: #eab308; }
+.section-head.sec-now, .section-head.sec-today, .section-head.sec-waiting { font-size: 26px; font-weight: 800; align-items: center; margin: 6px 0 10px 2px; }
+.section-head.sec-now { color: var(--sec-now); }
+.section-head.sec-today { color: var(--sec-today); }
+.section-head.sec-waiting { color: var(--sec-waiting); }
+.section-head.sec-now .n, .section-head.sec-today .n, .section-head.sec-waiting .n { font-size: 16px; font-weight: 700; color: inherit; opacity: 0.85; }
+/* 「まとめて処理」＝濃い緑（ほかの区分見出しと同じく2倍の太字） */
+:root, :root[data-theme="light"] { --sec-batch: #166534; }
+:root[data-theme="dark"] { --sec-batch: #4ade80; }
+.section-head.sec-batch { font-size: 26px; font-weight: 800; align-items: center; margin: 6px 0 10px 2px; color: var(--sec-batch); }
+.section-head.sec-batch .n { font-size: 16px; font-weight: 700; color: inherit; opacity: 0.85; }
+/* 上の「今すぐ対応の仕事」：朱色の背景に黒い文字（ライト・ダーク共通） */
+.stat.now-stat { background: #eb6101; border-color: #eb6101; }
+.stat.now-stat .stat-label, .stat.now-stat .stat-value { color: #111111; }

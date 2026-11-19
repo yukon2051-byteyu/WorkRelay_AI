@@ -114,7 +114,7 @@ export default function Today({ home, selectedId, onSelect, onChanged, onIngest 
         </div>
         <div className="scope">前回の確認（{fmtDue(home.last_checked)}）以降の連絡と、持ち越しの依頼が対象</div>
         <div className="stats">
-          <div className="stat" title="持ち越しの依頼も含めた、今すぐ対応する仕事の数">
+          <div className="stat now-stat" title="持ち越しの依頼も含めた、今すぐ対応する仕事の数">
             <span className="stat-label">今すぐ対応の仕事</span>
             <span className="stat-value">{nowItems.length}件</span>
           </div>
@@ -193,7 +193,7 @@ export default function Today({ home, selectedId, onSelect, onChanged, onIngest 
 
       {home.sections.filter((sec) => sec.items.length > 0).map((sec) => (
         <section className="section" key={sec.key} aria-label={sec.label}>
-          <h2 className="section-head">
+          <h2 className={`section-head sec-${sec.key}`}>
             {sec.label}<span className="n">{sec.items.length}件</span>
             {sec.key === "now" && <HelpTip id="now" label="今すぐ対応" />}
           </h2>
