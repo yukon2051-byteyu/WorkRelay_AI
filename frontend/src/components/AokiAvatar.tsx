@@ -1,77 +1,86 @@
-/** デモツアーの案内役「青木さん」のアバター（インラインSVG・3表情）
- *  morning … 笑顔＋右下に振る手（あいさつ・朝の場面）
+/** デモツアーの案内役「青木さん」（オリジナルのインラインSVG・上半身・3表情）
+ *  morning … にっこり笑顔＋右手を振る（ウェルカム・朝の場面）
  *  idea    … きりっとした眉・丸い口＋右上にアンバーのスパークル（説明の場面）
  *  done    … にっこり目（^ ^）＋右下にミントティールのチェック（小休止・エンディング）
+ *  配色：紺のボブ #1E293B、インディゴのジャケット #4338CA＋白襟、肌 #FDE2C8、チーク #FDA4AF。
  *  装飾なので読み上げ対象にはしない（aria-hidden）。説明はポップアップの本文で伝える */
 export type Mood = "morning" | "idea" | "done";
 
-export default function AokiAvatar({ mood, size = 48 }: { mood: Mood; size?: number }) {
-  const ink = "#1E293B";
-  const mouth = "#9A3412";
+const INK = "#1E293B";
+const SKIN = "#FDE2C8";
+const MOUTH = "#9A3412";
+const LINE = "#1E1B4B"; // 輪郭線（帯の紫の上でも形が分かるように）
+const SKIN_LINE = "#D9A07E";
+
+export default function AokiAvatar({ mood, size = 128 }: { mood: Mood; size?: number }) {
   return (
-    <svg className={`aoki-avatar mood-${mood}`} width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-      <defs>
-        <clipPath id={`aoki-clip-${mood}`}>
-          <circle cx="32" cy="32" r="29" />
-        </clipPath>
-      </defs>
-      {/* 丸い背景と枠線 */}
-      <circle cx="32" cy="32" r="30" fill="#F5F3FF" stroke="#DDD6FE" strokeWidth="2" />
-      <g clipPath={`url(#aoki-clip-${mood})`}>
-        {/* 後ろ髪（ボブ） */}
-        <path d="M15 36 C13 18 22 11 32 11 C42 11 51 18 49 36 L49 46 C45 48 42 47 41 44 L41 30 L23 30 L23 44 C22 47 19 48 15 46 Z" fill={ink} />
-        {/* ジャケットと白襟 */}
-        <path d="M8 66 C10 52 20 47 32 47 C44 47 54 52 56 66 Z" fill="#4338CA" />
-        <path d="M25.5 47.5 L32 57 L38.5 47.5 L35 46.5 L32 51 L29 46.5 Z" fill="#FFFFFF" />
-        <rect x="29" y="40" width="6" height="7" rx="2" fill="#FDE2C8" />
-        {/* 顔 */}
-        <ellipse cx="32" cy="31" rx="11.5" ry="12.5" fill="#FDE2C8" />
-        {/* 前髪 */}
-        <path d="M20.5 29 C21 19 27 15.5 33 15.5 C39.5 15.5 44 20 43.5 27 C38.5 25.5 34 22.5 31 19.5 C28.5 24 25 27 20.5 29 Z" fill={ink} />
-        {/* チーク */}
-        <circle cx="25.2" cy="35.5" r="2.3" fill="#FDA4AF" opacity="0.85" />
-        <circle cx="38.8" cy="35.5" r="2.3" fill="#FDA4AF" opacity="0.85" />
-        {/* 表情 */}
-        {mood === "morning" && (
-          <>
-            <path d="M25.5 31.5 Q27.5 29.5 29.5 31.5" fill="none" stroke={ink} strokeWidth="1.6" strokeLinecap="round" />
-            <path d="M34.5 31.5 Q36.5 29.5 38.5 31.5" fill="none" stroke={ink} strokeWidth="1.6" strokeLinecap="round" />
-            <path d="M28 37 Q32 41.5 36 37" fill="none" stroke={mouth} strokeWidth="1.7" strokeLinecap="round" />
-          </>
-        )}
-        {mood === "idea" && (
-          <>
-            <path d="M24.5 27.2 L29.5 26.2" stroke={ink} strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M34.5 26.2 L39.5 27.2" stroke={ink} strokeWidth="1.5" strokeLinecap="round" />
-            <circle cx="27.3" cy="31" r="1.5" fill={ink} />
-            <circle cx="36.7" cy="31" r="1.5" fill={ink} />
-            <circle cx="32" cy="38" r="1.8" fill={mouth} />
-          </>
-        )}
-        {mood === "done" && (
-          <>
-            <path d="M25 32 L27.4 29.6 L29.8 32" fill="none" stroke={ink} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M34.2 32 L36.6 29.6 L39 32" fill="none" stroke={ink} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M27.5 36.2 Q32 42 36.5 36.2 Z" fill={mouth} />
-          </>
-        )}
-      </g>
-      {/* 表情ごとの小物（丸の外にはみ出してよい） */}
+    <svg className={`aoki-figure mood-${mood}`} width={size} height={size} viewBox="0 0 140 140" aria-hidden="true" focusable="false">
+      {/* 後ろ髪（肩までのボブ） */}
+      <path d="M33 74 C28 38 47 20 70 20 C93 20 112 38 107 74 L108 98 C101 104 92 102 90 95 L90 62 L50 62 L50 95 C48 102 39 104 32 98 Z" fill={INK} stroke={LINE} strokeWidth="1.5" />
+      {/* ジャケット・白いシャツ・襟 */}
+      <path d="M18 141 C20 113 40 100 70 100 C100 100 120 113 122 141 Z" fill="#4338CA" stroke={LINE} strokeWidth="1.8" />
+      <path d="M57 100 L70 126 L83 100 Z" fill="#FFFFFF" />
+      <path d="M56 99 L68 124 L58 127 L50 104 Z" fill="#3730A3" />
+      <path d="M84 99 L72 124 L82 127 L90 104 Z" fill="#3730A3" />
+      {/* 首 */}
+      <rect x="62" y="84" width="16" height="18" rx="5" fill={SKIN} />
+      <rect x="62" y="86" width="16" height="5" fill="#F2C9A8" />
+      {/* 耳と顔 */}
+      <circle cx="46" cy="67" r="4.5" fill={SKIN} />
+      <circle cx="94" cy="67" r="4.5" fill={SKIN} />
+      <ellipse cx="70" cy="64" rx="24" ry="26" fill={SKIN} stroke={SKIN_LINE} strokeWidth="1.4" />
+      {/* 前髪 */}
+      <path d="M45 62 C44 41 56 31 71 31 C87 31 97 42 96 58 C85 56 77 50 70 43 C66 52 57 59 45 62 Z" fill={INK} />
+      <path d="M45 62 C44 70 46 78 49 84 L47 64 Z" fill={INK} />
+      <path d="M96 58 C97 68 95 78 92 84 L94 62 Z" fill={INK} />
+      {/* チーク */}
+      <ellipse cx="55.5" cy="75" rx="5" ry="3.6" fill="#FDA4AF" opacity="0.8" />
+      <ellipse cx="84.5" cy="75" rx="5" ry="3.6" fill="#FDA4AF" opacity="0.8" />
+
       {mood === "morning" && (
-        <g className="aoki-wave">
-          <circle cx="53" cy="50" r="5.5" fill="#FDE2C8" stroke="#E7B998" strokeWidth="1" />
-          <path d="M58.5 41.5 Q61 44 60.5 47" fill="none" stroke="#C4B5FD" strokeWidth="1.6" strokeLinecap="round" />
-          <path d="M47.5 41 Q48.5 38.5 51 38" fill="none" stroke="#C4B5FD" strokeWidth="1.6" strokeLinecap="round" />
-        </g>
+        <>
+          <path d="M53 66 Q58.5 60 64 66" fill="none" stroke={INK} strokeWidth="2.6" strokeLinecap="round" />
+          <path d="M76 66 Q81.5 60 87 66" fill="none" stroke={INK} strokeWidth="2.6" strokeLinecap="round" />
+          <path d="M61 76 Q70 88 79 76 Z" fill={MOUTH} />
+          <path d="M64.5 80.5 Q70 85 75.5 80.5 Q70 83 64.5 80.5 Z" fill="#FB7185" />
+          {/* 手を振る右腕 */}
+          <g className="aoki-wave">
+            <path d="M104 107 C113 99 117 88 115 76 L126 74 C130 92 126 106 113 118 Z" fill="#5B50E0" stroke={LINE} strokeWidth="1.8" strokeLinejoin="round" />
+            <path d="M114.5 76.5 L126.5 74.5 L127.5 80 L115.5 82 Z" fill="#FFFFFF" stroke={LINE} strokeWidth="1.4" strokeLinejoin="round" />
+            <ellipse cx="120.5" cy="64" rx="9" ry="10.5" fill={SKIN} stroke={SKIN_LINE} strokeWidth="1.4" />
+            <path d="M115 55 L115 60 M119.5 53.5 L119.5 59.5 M124 54.5 L124 60" stroke={SKIN_LINE} strokeWidth="1.3" strokeLinecap="round" />
+            <path d="M112 64 C109 61 110 57 113 58" fill="none" stroke={SKIN_LINE} strokeWidth="1.4" strokeLinecap="round" />
+            <path d="M131 46 Q136 51 135 58" fill="none" stroke="#FDE68A" strokeWidth="2.4" strokeLinecap="round" />
+            <path d="M127 40 Q134 43 137 49" fill="none" stroke="#FDE68A" strokeWidth="2.4" strokeLinecap="round" />
+          </g>
+        </>
       )}
       {mood === "idea" && (
-        <path className="aoki-spark" d="M53 4 L55 10 L61 12 L55 14 L53 20 L51 14 L45 12 L51 10 Z" fill="#FBBF24" stroke="#F59E0B" strokeWidth="0.8" />
+        <>
+          <path d="M52 55 L63 52.5" stroke={INK} strokeWidth="2.4" strokeLinecap="round" />
+          <path d="M77 52.5 L88 55" stroke={INK} strokeWidth="2.4" strokeLinecap="round" />
+          <ellipse cx="58.5" cy="65" rx="3" ry="3.8" fill={INK} />
+          <ellipse cx="81.5" cy="65" rx="3" ry="3.8" fill={INK} />
+          <circle cx="59.6" cy="63.6" r="1" fill="#FFFFFF" />
+          <circle cx="82.6" cy="63.6" r="1" fill="#FFFFFF" />
+          <ellipse cx="70" cy="80" rx="3.6" ry="4.2" fill={MOUTH} />
+          <g className="aoki-spark">
+            <path d="M117 14 L121 26 L133 30 L121 34 L117 46 L113 34 L101 30 L113 26 Z" fill="#FBBF24" stroke="#F59E0B" strokeWidth="1" />
+            <path d="M101 8 L103 13 L108 15 L103 17 L101 22 L99 17 L94 15 L99 13 Z" fill="#FCD34D" />
+          </g>
+        </>
       )}
       {mood === "done" && (
-        <g className="aoki-check">
-          <circle cx="52" cy="52" r="8" fill="#10B981" stroke="#FFFFFF" strokeWidth="2" />
-          <path d="M48 52 L51 55 L56.5 49.5" fill="none" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        </g>
+        <>
+          <path d="M53 67 L58.5 61 L64 67" fill="none" stroke={INK} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M76 67 L81.5 61 L87 67" fill="none" stroke={INK} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M60 75 Q70 90 80 75 Z" fill={MOUTH} />
+          <path d="M64 81 Q70 87 76 81 Q70 84 64 81 Z" fill="#FB7185" />
+          <g className="aoki-check">
+            <circle cx="115" cy="114" r="15" fill="#10B981" stroke="#FFFFFF" strokeWidth="3" />
+            <path d="M107.5 114 L113 119.5 L123 108.5" fill="none" stroke="#FFFFFF" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />
+          </g>
+        </>
       )}
     </svg>
   );

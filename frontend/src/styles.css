@@ -58,9 +58,11 @@
   /* デモツアー（ストーリー吹き出し型） */
   --band-from: #6d5bd0;
   --band-to: #3f3494;
-  --tour-body-bg: #f5f3ff;
-  --bubble-bg: #ffffff;
-  --bubble-border: #ddd6fe;
+  --tour-card-bg: #ffffff;
+  --seg-bg: #eef0f6;
+  --seg-border: #d6dae6;
+  --seg-done-bg: #dfdbfb;
+  --seg-done-fg: #3f3494;
   --cta-from: #6a58cc;
   --cta-to: #4536a8;
   --cta-shadow: #2e2482;
@@ -114,9 +116,11 @@
   --mark-line: rgba(245, 197, 106, 0.55);
   --band-from: #5b4bc0;
   --band-to: #2f2678;
-  --tour-body-bg: #23253a;
-  --bubble-bg: #2e3045;
-  --bubble-border: #4a4d6a;
+  --tour-card-bg: #262838;
+  --seg-bg: #33364a;
+  --seg-border: #4a4e68;
+  --seg-done-bg: #3f3a7a;
+  --seg-done-fg: #dcd9ff;
   --cta-from: #6a58cc;
   --cta-to: #4536a8;
   --cta-shadow: #1f1860;
@@ -615,53 +619,84 @@ a.btn { text-decoration: none; }
 .scene-menu button[aria-selected="true"] { font-weight: 700; color: var(--accent); }
 .scene-menu button.is-break { color: var(--text-sub); padding-left: 22px; }
 
-/* ================= デモツアー：青木さん×時刻バッジのストーリー吹き出し型 ================= */
-.tour-pop.story { width: 420px; max-width: calc(100vw - 24px); padding: 0; background: var(--tour-body-bg); border: 1px solid var(--pop-border); border-radius: 16px; box-shadow: 0 16px 40px var(--shadow); }
-.tour-pop.story.final, .tour-pop.story.break { width: min(540px, calc(100vw - 24px)); }
-/* グラデーション帯 */
-.tour-band { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: linear-gradient(120deg, var(--band-from), var(--band-to)); border-radius: 15px 15px 0 0; color: #fff; }
-.tour-band .aoki-avatar { flex: none; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25)); overflow: visible; }
-.band-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.time-pill { align-self: flex-start; background: #fff; color: #2a2366; font-weight: 800; font-size: 13px; padding: 1px 10px; border-radius: 999px; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.18); white-space: nowrap; }
-.tour-band .tour-scene { color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tour-band .tour-count { color: #fff; font-weight: 400; }
-.tour-band .jump-btn, .tour-band .scene-pick { color: #fff; border-color: rgba(255, 255, 255, 0.65); background: rgba(255, 255, 255, 0.12); }
-.tour-band .jump-btn:hover:not(:disabled), .tour-band .scene-pick:hover, .tour-band .scene-pick[aria-expanded="true"] { background: rgba(255, 255, 255, 0.28); color: #fff; border-color: #fff; }
-.tour-band .jump-btn:disabled { opacity: 0.4; }
-.tour-band .scene-menu { right: 8px; }
-/* 4チャプターの進捗バー */
-.chapters { display: flex; gap: 4px; list-style: none; margin: 0; padding: 9px 12px 0; }
-.chapter { flex: 1; min-width: 0; text-align: center; font-size: 11.5px; font-weight: 600; padding: 2px 4px; border-radius: 999px; border: 1px solid var(--border-strong); color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.chapter.done, .chapter.current { color: #fff; border-color: transparent; }
-.chapter.ch-0.done, .chapter.ch-0.current { background: #157585; }
-.chapter.ch-1.done, .chapter.ch-1.current { background: #9a5a0b; }
-.chapter.ch-2.done, .chapter.ch-2.current { background: #5145a6; }
-.chapter.ch-3.done, .chapter.ch-3.current { background: #236148; }
-.chapter.current { font-weight: 800; box-shadow: 0 0 0 2px var(--tour-body-bg), 0 0 0 3.5px var(--band-from); }
-/* 本文：吹き出し */
-.tour-body { padding: 10px 14px 12px; }
-.bubble { position: relative; background: var(--bubble-bg); border: 1px solid var(--bubble-border); border-radius: 14px; padding: 10px 13px 11px; }
-.bubble::before { content: ""; position: absolute; top: -7px; left: 24px; width: 12px; height: 12px; background: var(--bubble-bg); border-left: 1px solid var(--bubble-border); border-top: 1px solid var(--bubble-border); transform: rotate(45deg); }
-.bubble-lead { font-size: 12.5px; font-weight: 700; color: var(--accent); margin-bottom: 2px; }
-.tour-title { font-size: 15.5px; font-weight: 800; line-height: 1.45; margin: 0 0 3px; color: var(--text); }
-.tour-pop.story .bubble .tour-text { margin: 0; font-size: 13.5px; line-height: 1.65; color: var(--text-reason); }
-.tour-pop.story .tour-step { margin-top: 8px; }
-.note-pills { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 10px 0 0; }
-.note-pills li { font-size: 11.5px; color: var(--text-sub); background: var(--bubble-bg); border: 1px solid var(--bubble-border); border-radius: 999px; padding: 1px 9px; }
+/* ================= デモツアー：青木さん×時刻バッジのウェルカムカード型（帯にキャラクター＋時刻バッジ、中央揃え） ================= */
+.tour-pop.story { width: 400px; max-width: calc(100vw - 24px); padding: 0; background: var(--tour-card-bg); border: 0; border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(30, 27, 75, 0.3); overflow: visible; }
+.tour-pop.story.big { width: min(470px, calc(100vw - 24px)); }
+/* 帯：紫〜インディゴのグラデーション。左に青木さん（頭が帯から少しはみ出す）、右に大きな時刻バッジ */
+.tour-band { position: relative; display: flex; align-items: flex-end; justify-content: space-between; height: 92px; padding: 0 20px 0 14px;
+  background: linear-gradient(110deg, #a35bf2 0%, #6f50e2 45%, #3f34b4 100%); border-radius: 20px 20px 0 0; }
+.big .tour-band { height: 126px; padding: 0 28px 0 18px; }
+.tour-band .aoki-figure { display: block; margin-top: -14px; flex: none; filter: drop-shadow(0 4px 6px rgba(20, 16, 70, 0.25)); overflow: visible; }
+.big .tour-band .aoki-figure { margin-top: -26px; }
+.time-badge { align-self: center; display: inline-flex; align-items: center; gap: 6px; background: #fff; border-radius: 14px; padding: 6px 12px;
+  box-shadow: 0 6px 16px rgba(20, 16, 70, 0.28); white-space: nowrap; }
+.time-badge span { font-size: 20px; line-height: 1; }
+.time-badge b { font-size: 22px; font-weight: 800; color: #111827; letter-spacing: 0.02em; line-height: 1.1; }
+.big .time-badge { padding: 9px 16px; border-radius: 16px; }
+.big .time-badge span { font-size: 28px; }
+.big .time-badge b { font-size: 32px; }
+.tour-close { position: absolute; top: 8px; right: 10px; width: 28px; height: 28px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, 0.2);
+  color: #fff; font-size: 18px; line-height: 1; cursor: pointer; }
+.tour-close:hover { background: rgba(255, 255, 255, 0.35); }
+/* 本文：中央揃え */
+.tour-body { padding: 14px 18px 12px; text-align: center; }
+.big .tour-body { padding: 20px 24px 14px; }
+.tour-title { margin: 0; font-size: 17px; font-weight: 800; line-height: 1.4; color: var(--text); }
+.big .tour-title { font-size: 21px; }
+.tour-sub { margin: 4px 0 0; font-size: 13px; color: var(--text-reason); }
+.big .tour-sub { font-size: 15px; }
+/* 1〜4の進捗（チャプター） */
+.chapters { display: flex; gap: 6px; list-style: none; margin: 12px auto 0; padding: 0; max-width: 380px; }
+.big .chapters { margin-top: 18px; }
+.chapter { flex: 1; padding: 3px 0; border-radius: 999px; background: var(--seg-bg); border: 1px solid var(--seg-border); color: var(--text-sub);
+  font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.big .chapter { padding: 6px 0; font-size: 16px; }
+.chapter.done { background: var(--seg-done-bg); border-color: transparent; color: var(--seg-done-fg); }
+.chapter.current { background: linear-gradient(135deg, #6a58d6, #4f43c4); border-color: transparent; color: #fff; box-shadow: 0 2px 6px rgba(67, 56, 202, 0.35); }
+.tour-pop.story .tour-text { margin: 10px 0 0; font-size: 13.5px; line-height: 1.7; color: var(--text); }
+.big .tour-text { margin-top: 16px; font-size: 15px; }
+.tour-pop.story .tour-step { justify-content: center; margin-top: 6px; }
+/* 下線つきのリンク（デモツアーを開始する・詳しく見る・この画面でできること） */
+.tour-link { background: none; border: 0; padding: 0; margin-top: 10px; font-size: 14px; font-weight: 600; color: var(--text); text-decoration: underline;
+  text-underline-offset: 4px; cursor: pointer; }
+.tour-link:hover { color: var(--accent); }
+.big .tour-link { font-size: 15px; }
+.tour-links { display: flex; justify-content: center; gap: 4px 18px; flex-wrap: wrap; margin-top: 6px; }
+.tour-links .tour-more { margin-top: 0; }
+.tour-links .tour-more summary { list-style: none; font-size: 13px; font-weight: 600; color: var(--text); text-decoration: underline; text-underline-offset: 4px; }
+.tour-links .tour-more summary::-webkit-details-marker { display: none; }
+.tour-links .tour-more[open] { flex-basis: 100%; text-align: left; }
+.note-pills { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 0; margin: 12px 0 0; }
+.note-pills li { font-size: 11.5px; color: var(--text-sub); background: var(--seg-bg); border: 1px solid var(--seg-border); border-radius: 999px; padding: 1px 10px; }
+.tour-pop.story .break-body { text-align: left; }
 .tour-pop.story .break-body h4 { font-size: 12.5px; margin: 10px 0 3px; color: var(--text); }
 .tour-pop.story .break-body ul { font-size: 13px; }
-/* 立体感のあるボタン（次へ・スタート・自由に試す） */
-.tour-pop.story .btn.primary.cta { background: linear-gradient(135deg, var(--cta-from), var(--cta-to)); color: #fff; border: 0; border-radius: 10px; padding: 6px 18px; font-weight: 700;
-  box-shadow: 0 3px 0 var(--cta-shadow), 0 6px 14px rgba(67, 56, 202, 0.25); transition: transform 0.08s ease, box-shadow 0.08s ease; }
-.tour-pop.story .btn.primary.cta:hover { transform: translateY(-1px); box-shadow: 0 4px 0 var(--cta-shadow), 0 8px 18px rgba(67, 56, 202, 0.3); }
-.tour-pop.story .btn.primary.cta:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--cta-shadow), 0 3px 8px rgba(67, 56, 202, 0.2); }
-.tour-pop.story .btn.skip { border-radius: 10px; }
+.tour-pop.story .final-body { margin-top: 8px; }
+.tour-pop.story .final-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 16px; }
+.tour-pop.story .final-links .tour-link { margin-top: 4px; font-size: 13.5px; }
+/* 大きな2つのボタン：左は白の枠線、右はグラデーション＋立体の影（押すと沈む） */
+.tour-pop.story .tour-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+.tour-pop.story .btn.tbtn { height: 42px; border-radius: 12px; font-size: 15px; font-weight: 700; justify-content: center; }
+.big .tour-buttons .btn.tbtn { height: 50px; font-size: 17px; }
+.tour-pop.story .btn.ghost-btn { background: var(--tour-card-bg); border: 1.5px solid var(--seg-border); color: var(--text); }
+.tour-pop.story .btn.ghost-btn:hover:not(:disabled) { border-color: var(--border-strong); }
+.tour-pop.story .btn.primary.cta { background: linear-gradient(180deg, #6d5fe6, #5144cf); color: #fff; border: 0;
+  box-shadow: 0 5px 0 #3b2fa8, 0 10px 18px rgba(67, 56, 202, 0.3); transition: transform 0.08s ease, box-shadow 0.08s ease; }
+.tour-pop.story .btn.primary.cta:hover { transform: translateY(-1px); box-shadow: 0 6px 0 #3b2fa8, 0 12px 22px rgba(67, 56, 202, 0.34); }
+.tour-pop.story .btn.primary.cta:active { transform: translateY(4px); box-shadow: 0 1px 0 #3b2fa8, 0 4px 8px rgba(67, 56, 202, 0.25); }
+/* 場面の移動（控えめに、ボタンの下） */
+.tour-jump-row { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; padding-top: 9px;
+  border-top: 1px solid var(--border); text-align: left; }
+.tour-jump-row .tour-scene { min-width: 0; font-size: 12px; font-weight: 500; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tour-jump-row .scene-menu { top: auto; bottom: calc(100% + 6px); right: 0; }
 /* 達成バッジと紙吹雪（小休止・エンディング） */
-.achieve { display: inline-block; font-size: 12px; font-weight: 800; color: var(--achieve-fg); background: var(--achieve-bg); border-radius: 999px; padding: 1px 10px; margin-bottom: 6px; animation: achieve-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+.achieve { display: inline-block; font-size: 12px; font-weight: 800; color: var(--achieve-fg); background: var(--achieve-bg); border-radius: 999px; padding: 1px 10px;
+  margin-bottom: 6px; animation: achieve-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
 @keyframes achieve-pop { 0% { transform: scale(0.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 .confetti { position: absolute; left: 0; right: 0; top: 0; height: 0; pointer-events: none; z-index: 3; }
 .confetti i { position: absolute; top: 4px; height: 11px; border-radius: 2px; opacity: 0; animation-name: confetti-fall; animation-timing-function: ease-out; animation-fill-mode: forwards; }
-@keyframes confetti-fall { 0% { opacity: 1; transform: translateY(0) rotate(0deg); } 100% { opacity: 0; transform: translateY(170px) rotate(540deg); } }
+@keyframes confetti-fall { 0% { opacity: 1; transform: translateY(0) rotate(0deg); } 100% { opacity: 0; transform: translateY(190px) rotate(540deg); } }
 .confetti i:nth-child(1) { left: 4%; background: #f59e0b; animation-delay: 0.00s; animation-duration: 1.30s; width: 6px; }
 .confetti i:nth-child(2) { left: 57%; background: #10b981; animation-delay: 0.37s; animation-duration: 1.45s; width: 8px; }
 .confetti i:nth-child(3) { left: 18%; background: #6366f1; animation-delay: 0.24s; animation-duration: 1.60s; width: 10px; }
@@ -681,18 +716,119 @@ a.btn { text-decoration: none; }
 .confetti i:nth-child(17) { left: 24%; background: #14b8a6; animation-delay: 0.42s; animation-duration: 1.45s; width: 8px; }
 .confetti i:nth-child(18) { left: 77%; background: #a78bfa; animation-delay: 0.29s; animation-duration: 1.60s; width: 10px; }
 /* 青木さんの小さな動き */
-.aoki-wave { transform-origin: 53px 55px; animation: aoki-wave 1.2s ease-in-out 2; }
-@keyframes aoki-wave { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-14deg); } 75% { transform: rotate(10deg); } }
-.aoki-spark { transform-origin: 53px 12px; animation: aoki-spark 1.6s ease-in-out infinite; }
-@keyframes aoki-spark { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.75); } }
-.aoki-check { transform-origin: 52px 52px; animation: achieve-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+.aoki-wave { transform-origin: 112px 112px; animation: aoki-wave 1.2s ease-in-out 2; }
+@keyframes aoki-wave { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(6deg); } }
+.aoki-spark { transform-origin: 117px 30px; animation: aoki-spark 1.6s ease-in-out infinite; }
+@keyframes aoki-spark { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.8); } }
+.aoki-check { transform-origin: 115px 114px; animation: achieve-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
 @media (prefers-reduced-motion: reduce) {
   .confetti { display: none; }
   .achieve, .aoki-wave, .aoki-spark, .aoki-check { animation: none; }
   .tour-pop.story .btn.primary.cta { transition: none; }
 }
-/* 狭い画面：帯の場面名は省き、チャプターは番号だけにして1行に収める */
+/* 狭い画面 */
 @media (max-width: 520px) {
-  .tour-band .tour-scene { display: none; }
-  .chapter { font-size: 10.5px; padding: 2px; }
+  .big .tour-band { height: 104px; }
+  .big .tour-band .aoki-figure { width: 120px; height: 120px; margin-top: -18px; }
+  .big .time-badge b { font-size: 24px; }
+  .big .time-badge span { font-size: 20px; }
+  .big .tour-title { font-size: 18px; }
+  .tour-jump-row .tour-scene { display: none; }
 }
+
+/* ---- お手本に合わせた調整：場面の種類ごとの組み立て ---- */
+.tour-pop.story { width: 430px; }
+.tour-band .aoki-figure { margin-top: -26px; }
+.big .tour-band .aoki-figure { margin-top: -30px; }
+.tour-body.left { text-align: left; }
+.tour-body.left .chapters { margin: 0 0 12px; max-width: none; }
+.tour-body.left .tour-title { font-size: 19px; }
+.tour-body.left .tour-step { justify-content: flex-start; }
+.tour-body.left .tour-links { justify-content: flex-start; }
+.mint-pill { display: inline-block; margin-bottom: 8px; padding: 4px 16px; border-radius: 999px; background: #a7f3d0; color: #065f46; font-size: 15px; font-weight: 800;
+  box-shadow: 0 2px 0 rgba(6, 95, 70, 0.12); animation: achieve-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+:root[data-theme="dark"] .mint-pill { background: rgba(16, 185, 129, 0.28); color: #a7f3d0; }
+.pale-pill { display: inline-block; margin: 16px 0 6px; padding: 4px 16px; border-radius: 999px; background: var(--seg-bg); border: 1px solid var(--seg-border);
+  color: var(--text); font-size: 15px; font-weight: 800; animation: achieve-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+/* エンディング：矢印型の進捗（終わったチャプターはミント） */
+.chapters.arrows { gap: 2px; max-width: 400px; }
+.chapters.arrows .chapter { border: 0; border-radius: 0; padding: 7px 0; font-size: 16px; color: #fff; background: linear-gradient(135deg, #6a58d6, #4f43c4); box-shadow: none;
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%, 14px 50%); }
+.chapters.arrows .chapter:first-child { clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%); border-radius: 999px 0 0 999px; }
+.chapters.arrows .chapter:last-child { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 14px 50%); border-radius: 0 999px 999px 0; }
+.chapters.arrows .chapter.done { background: #6ee7b7; color: #064e3b; }
+/* ボタンの並び */
+.tour-pop.story .tour-buttons.right { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
+.tour-pop.story .tour-buttons.right .btn.tbtn { min-width: 190px; }
+.tour-pop.story .tour-buttons.full { grid-template-columns: 1fr; }
+.tour-pop.story .btn.back-link { margin-right: auto; background: none; border: 0; padding: 6px 4px; color: var(--text-sub); font-size: 13.5px; text-decoration: underline; text-underline-offset: 3px; }
+.tour-pop.story .btn.back-link:disabled { visibility: hidden; }
+.final-note { margin: 10px 0 0; font-size: 12px; }
+.tour-pop.story .break-body { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--seg-bg); }
+.tour-pop.story .break-body h4:first-child { margin-top: 0; }
+/* 紙吹雪：カードの外まで広がって舞う */
+.confetti { left: -90px; right: -90px; top: -60px; }
+.confetti i { top: 0; border-radius: 2px; }
+@keyframes confetti-fall { 0% { opacity: 1; transform: translateY(0) rotate(0deg); } 85% { opacity: 1; } 100% { opacity: 0; transform: translateY(420px) rotate(600deg); } }
+.confetti i:nth-child(1) { left: 3%; background: #a78bfa; animation-delay: 0.00s; animation-duration: 1.60s; width: 6px; height: 6px; }
+.confetti i:nth-child(2) { left: 32%; background: #60a5fa; animation-delay: 0.41s; animation-duration: 1.78s; width: 9px; height: 12px; }
+.confetti i:nth-child(3) { left: 61%; background: #6ee7b7; animation-delay: 0.82s; animation-duration: 1.96s; width: 12px; height: 6px; }
+.confetti i:nth-child(4) { left: 90%; background: #fde68a; animation-delay: 0.33s; animation-duration: 2.14s; width: 6px; height: 12px; }
+.confetti i:nth-child(5) { left: 19%; background: #c4b5fd; animation-delay: 0.74s; animation-duration: 2.32s; width: 9px; height: 6px; }
+.confetti i:nth-child(6) { left: 48%; background: #93c5fd; animation-delay: 0.25s; animation-duration: 2.50s; width: 12px; height: 12px; }
+.confetti i:nth-child(7) { left: 77%; background: #34d399; animation-delay: 0.66s; animation-duration: 1.60s; width: 6px; height: 6px; }
+.confetti i:nth-child(8) { left: 6%; background: #f9a8d4; animation-delay: 0.17s; animation-duration: 1.78s; width: 9px; height: 12px; }
+.confetti i:nth-child(9) { left: 35%; background: #a78bfa; animation-delay: 0.58s; animation-duration: 1.96s; width: 12px; height: 6px; }
+.confetti i:nth-child(10) { left: 64%; background: #60a5fa; animation-delay: 0.09s; animation-duration: 2.14s; width: 6px; height: 12px; }
+.confetti i:nth-child(11) { left: 93%; background: #6ee7b7; animation-delay: 0.50s; animation-duration: 2.32s; width: 9px; height: 6px; }
+.confetti i:nth-child(12) { left: 22%; background: #fde68a; animation-delay: 0.01s; animation-duration: 2.50s; width: 12px; height: 12px; }
+.confetti i:nth-child(13) { left: 51%; background: #c4b5fd; animation-delay: 0.42s; animation-duration: 1.60s; width: 6px; height: 6px; }
+.confetti i:nth-child(14) { left: 80%; background: #93c5fd; animation-delay: 0.83s; animation-duration: 1.78s; width: 9px; height: 12px; }
+.confetti i:nth-child(15) { left: 9%; background: #34d399; animation-delay: 0.34s; animation-duration: 1.96s; width: 12px; height: 6px; }
+.confetti i:nth-child(16) { left: 38%; background: #f9a8d4; animation-delay: 0.75s; animation-duration: 2.14s; width: 6px; height: 12px; }
+.confetti i:nth-child(17) { left: 67%; background: #a78bfa; animation-delay: 0.26s; animation-duration: 2.32s; width: 9px; height: 6px; }
+.confetti i:nth-child(18) { left: 96%; background: #60a5fa; animation-delay: 0.67s; animation-duration: 2.50s; width: 12px; height: 12px; }
+.confetti i:nth-child(19) { left: 25%; background: #6ee7b7; animation-delay: 0.18s; animation-duration: 1.60s; width: 6px; height: 6px; }
+.confetti i:nth-child(20) { left: 54%; background: #fde68a; animation-delay: 0.59s; animation-duration: 1.78s; width: 9px; height: 12px; }
+.confetti i:nth-child(21) { left: 83%; background: #c4b5fd; animation-delay: 0.10s; animation-duration: 1.96s; width: 12px; height: 6px; }
+.confetti i:nth-child(22) { left: 12%; background: #93c5fd; animation-delay: 0.51s; animation-duration: 2.14s; width: 6px; height: 12px; }
+.confetti i:nth-child(23) { left: 41%; background: #34d399; animation-delay: 0.02s; animation-duration: 2.32s; width: 9px; height: 6px; }
+.confetti i:nth-child(24) { left: 70%; background: #f9a8d4; animation-delay: 0.43s; animation-duration: 2.50s; width: 12px; height: 12px; }
+.confetti i:nth-child(25) { left: 99%; background: #a78bfa; animation-delay: 0.84s; animation-duration: 1.60s; width: 6px; height: 6px; }
+.confetti i:nth-child(26) { left: 28%; background: #60a5fa; animation-delay: 0.35s; animation-duration: 1.78s; width: 9px; height: 12px; }
+.confetti i:nth-child(27) { left: 57%; background: #6ee7b7; animation-delay: 0.76s; animation-duration: 1.96s; width: 12px; height: 6px; }
+.confetti i:nth-child(28) { left: 86%; background: #fde68a; animation-delay: 0.27s; animation-duration: 2.14s; width: 6px; height: 12px; }
+.confetti i:nth-child(29) { left: 15%; background: #c4b5fd; animation-delay: 0.68s; animation-duration: 2.32s; width: 9px; height: 6px; }
+.confetti i:nth-child(30) { left: 44%; background: #93c5fd; animation-delay: 0.19s; animation-duration: 2.50s; width: 12px; height: 12px; }
+.confetti i:nth-child(31) { left: 73%; background: #34d399; animation-delay: 0.60s; animation-duration: 1.60s; width: 6px; height: 6px; }
+.confetti i:nth-child(32) { left: 2%; background: #f9a8d4; animation-delay: 0.11s; animation-duration: 1.78s; width: 9px; height: 12px; }
+.confetti i:nth-child(33) { left: 31%; background: #a78bfa; animation-delay: 0.52s; animation-duration: 1.96s; width: 12px; height: 6px; }
+.confetti i:nth-child(34) { left: 60%; background: #60a5fa; animation-delay: 0.03s; animation-duration: 2.14s; width: 6px; height: 12px; }
+.confetti i:nth-child(35) { left: 89%; background: #6ee7b7; animation-delay: 0.44s; animation-duration: 2.32s; width: 9px; height: 6px; }
+.confetti i:nth-child(36) { left: 18%; background: #fde68a; animation-delay: 0.85s; animation-duration: 2.50s; width: 12px; height: 12px; }
+.chapter { text-align: center; }
+.tour-pop.story .break-body h4 + ul + h4, .tour-pop.story .break-body > div + div h4 { margin-top: 10px; }
+/* 狭い・低い画面：カードが画面より高くなるときは、カードの中をスクロールする（イラストは帯の中に収める） */
+@media (max-width: 520px), (max-height: 700px) {
+  .tour-pop.story { max-height: calc(100vh - 24px); overflow-y: auto; }
+  .tour-pop.story .tour-band, .big .tour-band { height: auto; padding-top: 6px; }
+  .tour-pop.story .tour-band .aoki-figure, .big .tour-band .aoki-figure { width: 96px; height: 96px; margin-top: 0; }
+}
+/* 画面の一部を照らす場面：照らした場所を隠さないよう、カードを少し詰める */
+.compact .tour-band { height: 80px; }
+.compact .tour-band .aoki-figure { width: 102px; height: 102px; margin-top: -22px; }
+.compact .time-badge { padding: 5px 11px; }
+.compact .time-badge b { font-size: 20px; }
+.compact .time-badge span { font-size: 18px; }
+.compact .tour-body { padding: 11px 16px 9px; }
+.compact .tour-body.left .chapters { margin-bottom: 8px; }
+.compact .chapter { padding: 1px 0; font-size: 13px; }
+.compact .tour-body.left .tour-title { font-size: 17px; }
+.tour-pop.story.compact .tour-text { margin-top: 5px; font-size: 13.5px; line-height: 1.6; }
+.tour-pop.story.compact .tour-step { margin-top: 4px; }
+.compact .tour-links { margin-top: 4px; }
+.tour-pop.story.compact .tour-buttons { margin-top: 9px; }
+.tour-pop.story.compact .btn.tbtn { height: 40px; }
+.compact .tour-jump-row { margin-top: 9px; padding-top: 6px; }
+/* ホバーで位置を動かすと、ボタンの縁にカーソルがあるとき「浮く→外れる→戻る」を繰り返して震えるため、ホバーは明るさと影だけにする（押したときの沈み込みは残す） */
+.tour-pop.story .btn.primary.cta:hover { transform: none; filter: brightness(1.07); box-shadow: 0 5px 0 #3b2fa8, 0 12px 22px rgba(67, 56, 202, 0.34); }
