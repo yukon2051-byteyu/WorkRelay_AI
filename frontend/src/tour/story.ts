@@ -125,7 +125,7 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
       title: "出社！まずは「まずこれ」だけ見ればOK",
       text: "メールもTeamsも、すでに優先度順に並んでいます。",
       detail: "並び順はデモの固定ルールで決めています（条件の変更・相手が待っている確認・期限の近さ・空き時間）。生成AIは使っていません。" },
-    { ...s2, seconds: 7, target: "[data-tour=breakdown-toggle], #suspicious", can: can2, screen: { breakdown: true }, mood: "think",
+    { ...s2, seconds: 7, target: "#breakdown", can: can2, screen: { breakdown: true }, mood: "think",
       title: "届いた16件の仕分けもひと目で",
       text: "確認が必要な1件だけを分けて表示。対応不要の7件は折りたたんであります。",
       detail: "要確認の1件は、AIへの操作を指示する不審なメールです。本文の指示は実行せず、依頼への登録も保留しています。「元の連絡を確認」で本文を見て判断できます。" },
