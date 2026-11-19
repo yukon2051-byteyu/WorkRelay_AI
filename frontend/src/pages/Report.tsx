@@ -152,7 +152,7 @@ export default function ReportPage({ version }: { version: number }) {
         <h2>よく抜ける項目（初回の依頼で不足していた項目） <Src kind="history" text={L.history} /></h2>
         <div className="missing-grid">
           {r.missing.map((m) => (
-            <div className="tile" key={m.type}>
+            <div className="tile" key={m.type} data-type={m.type}>
               <div className="tile-label">{m.type}（対象 {m.count}件）</div>
               {m.fields.length === 0 ? <p className="muted" style={{ margin: 0 }}>抜けていた項目はありません</p> : (
                 <table className="mini">

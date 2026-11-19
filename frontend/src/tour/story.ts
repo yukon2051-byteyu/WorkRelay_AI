@@ -285,7 +285,7 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
       title: "朝の段取り 32分 → 9分（サンプル値）",
       text: "改善レポートで、時短の効果と値の出どころを確認できます。数値は架空の例です。",
       detail: "値の出どころは「サンプル値」「このブラウザでの操作時間」「架空の依頼履歴から集計」「実利用の計測値」に分けて表示します。段取り時間には、ツアーを見ている時間は含めません。" },
-    { ...s9, seconds: 6, target: "[data-tour=rp-missing]", can: can9,
+    { ...s9, seconds: 6, target: '[data-tour=rp-missing] .tile[data-type="データ抽出"]', can: can9,
       title: "抜けやすい項目もひと目で",
       text: "よく抜ける「集計単位」を依頼テンプレートに足せば、確認の往復を減らせます。" },
     { ...s9, seconds: 4, target: ".nav-guide-link:not(.nav-reset)",
