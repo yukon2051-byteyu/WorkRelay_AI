@@ -858,3 +858,5 @@ a.btn { text-decoration: none; }
 .stat.now-stat .stat-label, .stat.now-stat .stat-value { color: #111111; }
 :root[data-theme="dark"] .stat.now-stat { background: rgba(255, 107, 107, 0.2); border-color: rgba(255, 107, 107, 0.45); }
 :root[data-theme="dark"] .stat.now-stat .stat-label, :root[data-theme="dark"] .stat.now-stat .stat-value { color: #ffe4e4; }
+/* ウェルカム画面：アプリの説明 */
+.tour-intro { margin: 10px auto 0; max-width: 400px; font-size: 13.5px; line-height: 1.7; color: var(--text-reason); }
