@@ -97,6 +97,11 @@ export function StoryTour({ beats, resetData, onExit }: {
   const nextScene = curUnit >= 0 && curUnit + 1 < unitStarts.length ? unitStarts[curUnit + 1] : -1;
   // 場面を選んで移動するメニュー（どの場面へも、順番に関係なく移れる）
   const [pickOpen, setPickOpen] = useState(false);
+  // 「この画面で試してみる」：説明をいったん隠して、画面を自由に操作できるようにする（操作はツアー専用データ）
+  const [trying, setTrying] = useState(false);
+  const startTry = () => { setPickOpen(false); setTrying(true); };
+  /** ツアーに戻る：試した操作を取り消し、データと画面をこの拍の状態に作り直してから説明を再開する */
+  const endTry = () => { setTrying(false); goTo(idx, true); };
   const unitLabel = (i: number) => {
     const b = beats[i];
     return b.kind === "break" ? `小休止：${b.sceneName}` : `${CIRCLED[b.scene - 1]} ${b.time}　${b.sceneName}`;
@@ -120,7 +125,7 @@ export function StoryTour({ beats, resetData, onExit }: {
 
   /** k 番目の拍へ移る。戻るときはデータを初期状態に戻し、k までの操作をやり直す */
   const pendingTo = useRef<number | null>(null);
-  const goTo = useCallback(async (k: number) => {
+  const goTo = useCallback(async (k: number, rebuild = false) => {
     if (k < 0 || k >= beats.length) return;
     if (pendingTo.current === k) return; // 「次へ」の連打で、同じ拍へ二重に移らない
     pendingTo.current = k;
@@ -132,7 +137,8 @@ export function StoryTour({ beats, resetData, onExit }: {
     // データ操作や表示の切り替えに失敗しても、ツアーは止めずに続ける（失敗したことは説明に出す）
     try {
       // 戻り先より後ろのデータ操作がすでに行われているときだけ、初期状態からやり直す
-      const needReset = beats.slice(k + 1, doneUpTo.current + 1).some((b) => b.act);
+      // 「この画面で試してみる」のあとは、利用者の操作を取り消すため、必ず初期状態からやり直す
+      const needReset = rebuild || beats.slice(k + 1, doneUpTo.current + 1).some((b) => b.act);
       if (needReset) {
         await resetData();
         doneUpTo.current = -1;
@@ -209,6 +215,10 @@ export function StoryTour({ beats, resetData, onExit }: {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (trying) {
+        if (e.key === "Escape" && !document.querySelector(".overlay")) { e.stopPropagation(); e.preventDefault(); endTry(); }
+        return;
+      }
       if (e.key === "Escape" && pickOpen) { e.stopPropagation(); e.preventDefault(); setPickOpen(false); }
       else if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); onExit("aborted"); }
       else if (pickOpen) return; // メニューを開いている間は、矢印キーで拍を動かさない
@@ -225,7 +235,23 @@ export function StoryTour({ beats, resetData, onExit }: {
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, true);
     };
-  }, [idx, goTo, measure, onExit, prevScene, nextScene, pickOpen]);
+  }, [idx, goTo, measure, onExit, prevScene, nextScene, pickOpen, trying]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 試し中：幕・注目枠・説明は出さず、画面の下に小さな帯だけを出す（帯以外は通常の画面として操作できる）
+  if (trying) {
+    return (
+      <div className="tour trying" role="presentation">
+        <div className="try-bar" role="status">
+          <span className="try-icon" aria-hidden="true">🧪</span>
+          <span>
+            <b>試し中</b>：この画面を自由に操作できます。操作はツアー専用のデータで行い、あなたのデモには影響しません。
+            ツアーに戻ると、この場面の状態に戻ります。
+          </span>
+          <button className="btn tbtn primary cta" onClick={endTry}>ツアーに戻る</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="tour" role="presentation" onWheel={onWheel}>
@@ -346,6 +372,7 @@ export function StoryTour({ beats, resetData, onExit }: {
                     <details className="tour-more" open={canOpen} onToggle={(e) => setCanOpen((e.target as HTMLDetailsElement).open)}>
                       <summary>この画面でできること →</summary>
                       <ul>{beat.can.map((c) => <li key={c}>{c}</li>)}</ul>
+                      <button className="btn try-btn" onClick={startTry}>🧪 この画面で試してみる</button>
                     </details>
                   )}
                 </div>

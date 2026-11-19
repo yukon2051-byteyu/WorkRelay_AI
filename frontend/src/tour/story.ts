@@ -28,7 +28,7 @@ export type Beat = {
   text: string; // 2行以内の短文
   mood?: Mood; // 青木さんの表情（省略時は場面の既定）
   detail?: string; // 「詳しく見る」
-  can?: string[]; // この画面でできること（ツアー後に試せる）
+  can?: string[]; // この画面でできること（「この画面で試してみる」でその場で操作できる。ツアーに戻ると、試した操作は取り消される）
   recap?: string[]; // 小休止：ここまでで見たこと
   points?: string[]; // 小休止：WorkRelay AI のポイント（見どころ）
   next?: string; // 小休止：このあと見ること

@@ -868,3 +868,14 @@ a.btn { text-decoration: none; }
 /* ウェルカム画面は、アプリ説明が指定の位置で改行できる幅に（狭い画面では各行の中で折り返す） */
 .tour-pop.story.welcome { width: min(640px, calc(100vw - 24px)); }
 .tour-pop.story .tour-intro { max-width: none; }
+/* ツアー中の「この画面で試してみる」 */
+.tour-pop.story .btn.try-btn { margin-top: 8px; border: 1.5px solid #5145cf; color: #5145cf; background: transparent; border-radius: 10px; font-weight: 700; }
+:root[data-theme="dark"] .tour-pop.story .btn.try-btn { border-color: #b3acff; color: #b3acff; }
+.tour.trying { pointer-events: none; }
+.try-bar { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(760px, calc(100vw - 24px)); pointer-events: auto;
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; border-radius: 14px; background: #1f1b4d; color: #fff;
+  font-size: 13.5px; line-height: 1.55; box-shadow: 0 12px 32px rgba(15, 12, 50, 0.35); }
+.try-bar .try-icon { font-size: 20px; }
+.try-bar b { color: #c7c2ff; }
+.try-bar .btn.tbtn.primary.cta { flex: none; height: 40px; padding: 0 18px; border: 0; border-radius: 10px; background: #5145cf; color: #fff; font-weight: 700; }
+.try-bar .btn.tbtn.primary.cta:hover { background: #463bbd; }
