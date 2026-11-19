@@ -863,3 +863,5 @@ a.btn { text-decoration: none; }
 /* ウェルカム画面のアプリ説明：指定の青紫（#4839BC）の太字。ダークでは暗い背景でも読めるよう明るい青紫 */
 .tour-intro { color: #4839bc; font-weight: 700; }
 :root[data-theme="dark"] .tour-intro { color: #b3acff; }
+/* アプリ説明は小見出し（15px）より大きく */
+.tour-pop.story .tour-intro { font-size: 17px; line-height: 1.65; max-width: 420px; }
