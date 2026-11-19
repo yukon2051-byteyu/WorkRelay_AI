@@ -4,6 +4,7 @@
  *  break1  … 小休止1（チェックつき）
  *  think   … 考える
  *  break2  … 小休止2
+ *  nod     … うんうん納得
  *  装飾なので読み上げ対象にはしない（alt=""）。説明はポップアップの本文で伝える */
 import { AOKI_IMAGES } from "../assets/aokiImages";
 import type { AokiMood } from "../assets/aokiImages";

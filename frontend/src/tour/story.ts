@@ -38,17 +38,17 @@ export type Beat = {
 
 /** 4つのチャプター（進捗バー） */
 export const CHAPTERS = ["導入", "朝の整理", "段取り", "振り返り"] as const;
-/** 場面ごとの時刻バッジ・チャプター・青木さんの既定の画像（判断が要る場面は「考える」、機能を紹介する場面は「ひらめき」） */
+/** 場面ごとの時刻バッジ・チャプター・青木さんの既定の画像（判断を問いかける場面は「考える」、結果を確かめて納得する場面は「うんうん納得」、機能を紹介する場面は「ひらめき」） */
 export const SCENE_META: Record<number, { badge: string; chapter: number; mood: Mood }> = {
   1: { badge: "🚀 導入", chapter: 0, mood: "morning" },
   2: { badge: "☀️ 09:00", chapter: 1, mood: "morning" },
   3: { badge: "⚡ 09:02", chapter: 1, mood: "think" },
   4: { badge: "✉️ 09:05", chapter: 1, mood: "idea" },
   5: { badge: "📄 09:20", chapter: 2, mood: "idea" },
-  6: { badge: "🔓 10:00", chapter: 2, mood: "think" },
+  6: { badge: "🔓 10:00", chapter: 2, mood: "nod" },
   7: { badge: "🗓️ 10:05", chapter: 2, mood: "idea" },
   8: { badge: "👀 15:00", chapter: 3, mood: "idea" },
-  9: { badge: "📊 17:30", chapter: 3, mood: "think" },
+  9: { badge: "📊 17:30", chapter: 3, mood: "nod" },
   10: { badge: "🔌 本番イメージ", chapter: 3, mood: "idea" },
   11: { badge: "🎉 完了", chapter: 3, mood: "break1" },
 };
@@ -125,7 +125,7 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
       title: "出社！まずは「まずこれ」だけ見ればOK",
       text: "メールもTeamsも、すでに優先度順に並んでいます。",
       detail: "並び順はデモの固定ルールで決めています（条件の変更・相手が待っている確認・期限の近さ・空き時間）。生成AIは使っていません。" },
-    { ...s2, seconds: 7, target: "#breakdown", can: can2, screen: { breakdown: true }, mood: "think",
+    { ...s2, seconds: 7, target: "#breakdown", can: can2, screen: { breakdown: true }, mood: "nod",
       title: "届いた16件の仕分けもひと目で",
       text: "確認が必要な1件だけを分けて表示。対応不要の7件は折りたたんであります。",
       detail: "要確認の1件は、AIへの操作を指示する不審なメールです。本文の指示は実行せず、依頼への登録も保留しています。「元の連絡を確認」で本文を見て判断できます。" },
@@ -135,7 +135,7 @@ export function buildStory(ctl: TourCtl, ids: Ids): Beat[] {
       title: "「同じ依頼？」は1クリックでサクッと判定",
       text: "AI任せにせず、最後の判断だけ人が選ぶから安心です。",
       detail: "「⚠ 判断待ち」の欄に、Teamsの抜粋と、つないだときの影響（確定期限は今日15:00のまま）をまとめています。全文と理由は「原文と判定理由を見る」から確かめられます。" },
-    { ...s3, seconds: 7, target: "[data-sec=summary] .due-line, [data-sec=decided]", can: can3, screen: { sel: { id: ids.sales, focus: "summary" } },
+    { ...s3, seconds: 7, target: "[data-sec=summary] .due-line, [data-sec=decided]", can: can3, screen: { sel: { id: ids.sales, focus: "summary" } }, mood: "nod",
       title: "つないでも、確定期限はそのまま",
       text: "今日11:00は「前倒しの相談中」として記録。引き受けた15:00は変わりません。",
       detail: "つなぐ判断と、期限を変える判断は別です。期限を変えるときは「期限」タブの「確定期限を変更」を青木さんが選びます。",
