@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, WheelEvent as ReactWheelEvent } from "react";
 import type { Beat } from "../tour/story";
-import { SCENE_COUNT } from "../tour/story";
+import { CHAPTERS, SCENE_COUNT, SCENE_META } from "../tour/story";
+import AokiAvatar from "./AokiAvatar";
 
 const reduceMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 const CIRCLED = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮"; // 場面番号（場面数より多めに用意）
@@ -60,7 +61,8 @@ function place(t: Rect | null, w: number, h: number, avoid: Rect | null = null):
   const shifted = options.map((o) => (clear(o) || !avoid ? o : { ...o, left: avoid.left + avoid.width + m }))
     .map((o) => ({ ...o, ok: o.ok && o.left + w <= vw - m && !(t && overlaps({ top: o.top, left: o.left, width: w, height: h }, t)) }));
   const fit = shifted.find((o) => o.ok && clear(o)) ?? options.find((o) => o.ok);
-  return fit ? { top: fit.top, left: fit.left } : { top: vh - h - m, left: clampX(t.left) };
+  // どの候補でも、最後に画面内へ収める（照らす場所が画面の外にあるときや、狭い画面でもはみ出さない）
+  return fit ? { top: clampY(fit.top), left: clampX(fit.left) } : { top: Math.max(m, vh - h - m), left: clampX(t.left) };
 }
 
 /** デモツアー。自動では進まず、「戻る」「次へ」「終了」で利用者が自分のペースで進める */
@@ -240,17 +242,25 @@ export function StoryTour({ beats, resetData, onExit }: {
         </>
       )}
       {centered && ready && <div className="tour-dim" />}
-      <div ref={pop} className={`tour-pop story${centered ? " final" : ""}${final ? " ending" : ""}${isBreak ? " break" : ""}${ready && pos ? " shown" : ""}`} role="dialog" aria-modal="true"
-        aria-labelledby="tour-scene" aria-describedby="tour-text" onKeyDown={trapTab}
+      <div ref={pop} className={`tour-pop story${centered ? " final" : ""}${final ? " ending" : ""}${isBreak ? " break" : ""}${beat?.kind === "intro" ? " welcome" : ""}${ready && pos ? " shown" : ""}`} role="dialog" aria-modal="true"
+        aria-labelledby="tour-title" aria-describedby="tour-text" onKeyDown={trapTab}
         style={pos ? { top: pos.top, left: pos.left } : { top: -9999, left: -9999 }}>
         {beat && (
           <>
-            <div className="tour-head">
-              {isBreak ? (
-                <span id="tour-scene" className="tour-scene"><span className="tour-time">小休止 {breakNo} / {breakTotal}</span>　{beat.sceneName}</span>
-              ) : (
-                <span id="tour-scene" className="tour-scene"><span className="tour-time">{beat.time}</span>　{CIRCLED[beat.scene - 1]} {beat.sceneName}</span>
-              )}
+            {/* 小休止・エンディングの紙吹雪（動きを減らす設定では出さない） */}
+            {(isBreak || final) && ready && <div className="confetti" aria-hidden="true">{Array.from({ length: 18 }, (_, i) => <i key={i} />)}</div>}
+
+            {/* グラデーション帯：青木さん・時刻バッジ・場面の移動 */}
+            <div className="tour-head tour-band">
+              <AokiAvatar mood={beat.mood ?? "idea"} size={46} />
+              <div className="band-main">
+                <span className="time-pill">{isBreak ? "☕ 小休止" : SCENE_META[beat.scene].badge}</span>
+                {isBreak ? (
+                  <span id="tour-scene" className="tour-scene">小休止 {breakNo} / {breakTotal}　{beat.sceneName}</span>
+                ) : (
+                  <span id="tour-scene" className="tour-scene">{beat.time}　{CIRCLED[beat.scene - 1]} {beat.sceneName}</span>
+                )}
+              </div>
               {/* 場面の移動：‹ › で前後の場面へ、場面番号を押すと一覧からどの場面へも移れる（Shift＋← → でも操作できる） */}
               <span className="tour-count tour-jump">
                 <button className="jump-btn" aria-label="前の場面へ" title="前の場面へ（Shift＋←）" disabled={prevScene < 0} onClick={() => jumpTo(prevScene)}>‹</button>
@@ -280,67 +290,108 @@ export function StoryTour({ beats, resetData, onExit }: {
                 </ul>
               )}
             </div>
-            {sceneTotal > 1 && (
-              <div className="tour-step" aria-label={`この場面の見どころ ${sceneTotal}か所中 ${sceneNo}か所目`}>
-                この場面の見どころ {sceneNo} / {sceneTotal}
-                <span className="tour-dots" aria-hidden="true">
-                  {Array.from({ length: sceneTotal }, (_, i) => <span key={i} className={i < sceneNo ? "on" : ""} />)}
-                </span>
-              </div>
-            )}
 
-            {isBreak ? (
-              <div id="tour-text" className="break-body">
-                <p className="tour-text">{beat.text}</p>
-                <h3>ここまでで見たこと</h3>
-                <ul>{beat.recap?.map((x) => <li key={x}>{x}</li>)}</ul>
-                <h3>WorkRelay AI のポイント</h3>
-                <ul className="break-points">{beat.points?.map((x) => <li key={x}>{x}</li>)}</ul>
-                {beat.next && <p className="break-next">{beat.next}</p>}
-              </div>
-            ) : final ? (
-              <div id="tour-text" className="final-body">
-                <h2>デモツアーは終了です</h2>
-                <p>{beat.text}</p>
-                <p className="faint">
-                  Microsoft 365 との実連携は未実装・未検証です。ツアーで紹介した接続手順は導入時の想定です。詳しくは、接続設定の「実際の業務で使うには」にまとめています。
-                </p>
-                <div className="btn-row">
-                  <button className="btn primary" data-tour-focus onClick={() => onExit("free")}>自由に試す</button>
-                </div>
-                <div className="final-links" aria-label="気になった機能を開く">
-                  <button className="btn" onClick={() => onExit("reply")}>返信案を見る</button>
-                  <button className="btn" onClick={() => onExit("document")}>資料の下書きを見る</button>
-                  <button className="btn" onClick={() => onExit("calendar")}>予定表を見る</button>
-                  <button className="btn" onClick={() => onExit("report")}>改善レポートを見る</button>
-                </div>
-              </div>
-            ) : (
-              <>
+            {/* 4チャプターの進捗バー */}
+            <ol className="chapters" aria-label={`チャプター ${SCENE_META[beat.scene].chapter + 1} / ${CHAPTERS.length}：${CHAPTERS[SCENE_META[beat.scene].chapter]}`}>
+              {CHAPTERS.map((c, i) => {
+                const cur = SCENE_META[beat.scene].chapter;
+                const st = i < cur || final ? "done" : i === cur ? "current" : "todo";
+                return (
+                  <li key={c} className={`chapter ch-${i} ${st}`} aria-current={st === "current" ? "step" : undefined}>
+                    {CIRCLED[i]} {c}
+                  </li>
+                );
+              })}
+            </ol>
+
+            <div className="tour-body">
+              {/* 吹き出し：見出し＋2行以内の短文 */}
+              <div className="bubble">
+                {beat.kind === "intro" && <div className="bubble-lead">はじめまして！WorkRelay AI へようこそ 👋</div>}
+                {(isBreak || final) && <div className="achieve">{isBreak ? `🏅 ${beat.sceneName}` : "🎉 ツアー完了"}</div>}
+                <h3 id="tour-title" className="tour-title">{beat.title}</h3>
                 <p id="tour-text" className="tour-text">{beat.text}</p>
-                {beat.detail && (
-                  <details className="tour-more" open={more} onToggle={(e) => setMore((e.target as HTMLDetailsElement).open)}>
-                    <summary>詳しく見る</summary>
-                    <p>{beat.detail}</p>
-                  </details>
-                )}
-                {beat.can && (
-                  <details className="tour-more" open={canOpen} onToggle={(e) => setCanOpen((e.target as HTMLDetailsElement).open)}>
-                    <summary>この画面でできること</summary>
-                    <ul>{beat.can.map((c) => <li key={c}>{c}</li>)}</ul>
-                  </details>
-                )}
-              </>
-            )}
+              </div>
 
-            <div className="tour-buttons">
-              <button className="btn" disabled={idx <= 0} onClick={() => goTo(idx - 1)}>戻る</button>
-              {!final && <button className="btn primary" data-tour-focus onClick={() => goTo(idx + 1)}>次へ</button>}
-              <span style={{ flex: 1 }} />
-              <button className="btn ghost" onClick={() => onExit("aborted")}>終了</button>
+              {sceneTotal > 1 && (
+                <div className="tour-step" aria-label={`この場面の見どころ ${sceneTotal}か所中 ${sceneNo}か所目`}>
+                  この場面の見どころ {sceneNo} / {sceneTotal}
+                  <span className="tour-dots" aria-hidden="true">
+                    {Array.from({ length: sceneTotal }, (_, i) => <span key={i} className={i < sceneNo ? "on" : ""} />)}
+                  </span>
+                </div>
+              )}
+
+              {beat.kind === "intro" && (
+                <ul className="note-pills" aria-label="このデモについて">
+                  <li>架空の業務データ</li>
+                  <li>優先順位・下書きは固定ルール（生成AIは未使用）</li>
+                  <li>ツアーは専用データで動作</li>
+                  <li>目安5分・自分のペースで</li>
+                </ul>
+              )}
+
+              {isBreak && (
+                <div className="break-body">
+                  <h4>ここまでで見たこと</h4>
+                  <ul>{beat.recap?.map((x) => <li key={x}>{x}</li>)}</ul>
+                  <h4>WorkRelay AI のポイント</h4>
+                  <ul className="break-points">{beat.points?.map((x) => <li key={x}>{x}</li>)}</ul>
+                  {beat.next && <p className="break-next">{beat.next}</p>}
+                </div>
+              )}
+
+              {final && (
+                <div className="final-body">
+                  <p className="faint">
+                    Microsoft 365 との実連携は未実装・未検証です。ツアーで紹介した接続手順は導入時の想定です。詳しくは、接続設定の「実際の業務で使うには」にまとめています。
+                  </p>
+                  <div className="btn-row">
+                    <button className="btn primary cta" data-tour-focus onClick={() => onExit("free")}>✨ 自由に試す</button>
+                  </div>
+                  <div className="final-links" aria-label="気になった機能を開く">
+                    <button className="btn" onClick={() => onExit("reply")}>返信案を見る</button>
+                    <button className="btn" onClick={() => onExit("document")}>資料の下書きを見る</button>
+                    <button className="btn" onClick={() => onExit("calendar")}>予定表を見る</button>
+                    <button className="btn" onClick={() => onExit("report")}>改善レポートを見る</button>
+                  </div>
+                </div>
+              )}
+
+              {!isBreak && !final && (
+                <>
+                  {beat.detail && (
+                    <details className="tour-more" open={more} onToggle={(e) => setMore((e.target as HTMLDetailsElement).open)}>
+                      <summary>詳しく見る</summary>
+                      <p>{beat.detail}</p>
+                    </details>
+                  )}
+                  {beat.can && (
+                    <details className="tour-more" open={canOpen} onToggle={(e) => setCanOpen((e.target as HTMLDetailsElement).open)}>
+                      <summary>この画面でできること</summary>
+                      <ul>{beat.can.map((c) => <li key={c}>{c}</li>)}</ul>
+                    </details>
+                  )}
+                </>
+              )}
+
+              <div className="tour-buttons">
+                {beat.kind === "intro" ? (
+                  <button className="btn skip" onClick={() => onExit("free")}>スキップ</button>
+                ) : (
+                  <button className="btn" disabled={idx <= 0} onClick={() => goTo(idx - 1)}>戻る</button>
+                )}
+                {!final && (
+                  <button className="btn primary cta" data-tour-focus data-next onClick={() => goTo(idx + 1)}>
+                    {beat.kind === "intro" ? "✨ スタート" : "次へ →"}
+                  </button>
+                )}
+                <span style={{ flex: 1 }} />
+                <button className="btn ghost" onClick={() => onExit("aborted")}>終了</button>
+              </div>
+              {actError && <div className="notice warn" role="status" style={{ marginTop: 8 }}>{actError}</div>}
+              {!ready && <div className="faint tour-loading" aria-live="polite">準備中…</div>}
             </div>
-            {actError && <div className="notice warn" role="status" style={{ marginTop: 8 }}>{actError}</div>}
-            {!ready && <div className="faint tour-loading" aria-live="polite">準備中…</div>}
           </>
         )}
       </div>
